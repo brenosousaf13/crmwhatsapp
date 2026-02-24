@@ -23,8 +23,8 @@ export async function POST(request: Request) {
 
         console.log('[Webhook Incoming RAW]', JSON.stringify(payload))
 
-        // Determine the event string (uazapi might use 'event', 'type', or 'action')
-        const eventType = payload.event || payload.type || payload.event_type || 'unknown'
+        // Determine the event string (uazapi might use 'event', 'type', 'action', or 'EventType')
+        const eventType = payload.event || payload.type || payload.event_type || payload.EventType || 'unknown'
 
         // Log the raw webhook event
         const { error: logError } = await supabase.from('webhook_logs').insert({
@@ -144,11 +144,12 @@ async function handleIncomingMessage(supabase: SupabaseClient, orgId: string, da
 
     // 4. Map message type
     let tipoMsg = 'texto'
-    if (data.messageType === 'conversation' || data.messageType === 'extendedTextMessage') tipoMsg = 'texto'
-    else if (data.messageType === 'imageMessage') tipoMsg = 'imagem'
-    else if (data.messageType === 'audioMessage' || data.messageType === 'pttMessage') tipoMsg = 'audio'
-    else if (data.messageType === 'videoMessage') tipoMsg = 'video'
-    else if (data.messageType === 'documentMessage' || data.messageType === 'documentWithCaptionMessage') tipoMsg = 'documento'
+    const originalType = (data.messageType || '').toLowerCase()
+    if (originalType === 'conversation' || originalType === 'extendedtextmessage') tipoMsg = 'texto'
+    else if (originalType === 'imagemessage') tipoMsg = 'imagem'
+    else if (originalType === 'audiomessage' || originalType === 'pttmessage') tipoMsg = 'audio'
+    else if (originalType === 'videomessage') tipoMsg = 'video'
+    else if (originalType === 'documentmessage' || originalType === 'documentwithcaptionmessage') tipoMsg = 'documento'
 
     // 5. Save message
     await supabase.from('mensagens').insert({
