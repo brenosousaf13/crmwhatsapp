@@ -11,11 +11,11 @@ export default function DashboardLayout({
     return (
         <QueryProvider>
             <OrganizationProvider>
-                <div className="flex min-h-screen bg-[#F8F9FB]">
+                <div className="flex h-screen w-full bg-[#F8F9FB] overflow-hidden">
                     <Sidebar />
-                    <div className="flex flex-1 flex-col ml-[240px] min-w-0">
+                    <div className="flex flex-1 flex-col min-w-0 overflow-y-auto">
                         <Header />
-                        <main className="flex-1 p-6 h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden flex flex-col">
+                        <main className="flex-1 p-6 flex flex-col min-h-[calc(100vh-4rem)]">
                             {children}
                         </main>
                     </div>
