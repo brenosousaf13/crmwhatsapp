@@ -21,23 +21,35 @@ export async function POST(request: Request) {
         const payload = await request.json()
         const supabase = createAdminClient()
 
-        // Log the raw webhook event (optional but recommended for debugging/history)
-        await supabase.from('webhook_logs').insert({
+        console.log('[Webhook Incoming RAW]', JSON.stringify(payload))
+
+        // Determine the event string (uazapi might use 'event', 'type', or 'action')
+        const eventType = payload.event || payload.type || payload.event_type || 'unknown'
+
+        // Log the raw webhook event
+        const { error: logError } = await supabase.from('webhook_logs').insert({
             organization_id: orgId,
-            event_type: payload.event,
+            event_type: eventType,
             payload: payload
         })
 
-        switch (payload.event) {
+        if (logError) {
+            console.error('[Webhook] Failed to save log:', logError.message)
+        }
+
+        switch (eventType) {
             case 'message':
             case 'messages':
-                await handleIncomingMessage(supabase, orgId, payload.data)
+            case 'messages.upsert': // Evolution API uses this sometimes
+                await handleIncomingMessage(supabase, orgId, payload.data || payload.message || payload)
                 break
             case 'messages_update':
-                await handleMessageUpdate(supabase, orgId, payload.data)
+            case 'messages.update':
+                await handleMessageUpdate(supabase, orgId, payload.data || payload)
                 break
             case 'connection':
-                await handleConnectionChange(supabase, orgId, payload.data)
+            case 'connection.update':
+                await handleConnectionChange(supabase, orgId, payload.data || payload)
                 break
         }
 
