@@ -38,6 +38,27 @@ export function useMessages(leadId: string | null) {
     useEffect(() => {
         if (!orgId || !leadId) return
 
+        const markAsRead = async () => {
+            try {
+                // Resetar contador de não lidas no lead
+                await supabase.from('leads').update({ mensagens_nao_lidas: 0 }).eq('id', leadId)
+
+                // Marcar mensagens de entrada como lidas (opcional, bom para controle)
+                await supabase.from('mensagens')
+                    .update({ lida: true })
+                    .eq('lead_id', leadId)
+                    .eq('direcao', 'entrada')
+                    .eq('lida', false)
+
+                // Atualizar a interface instantaneamente
+                queryClient.invalidateQueries({ queryKey: ['conversations', orgId] })
+            } catch (e) {
+                console.error('Failed to mark as read', e)
+            }
+        }
+
+        markAsRead()
+
         const channel = supabase.channel(`chat-messages-${leadId}`)
             .on(
                 'postgres_changes',
@@ -52,6 +73,12 @@ export function useMessages(leadId: string | null) {
                     queryClient.invalidateQueries({ queryKey })
                     // Também atualizar a lista de conversas (preview na sidebar)
                     queryClient.invalidateQueries({ queryKey: ['conversations', orgId] })
+
+                    // Se estivermos com o chat aberto, já marcar como lida e zerar o contador imediatamente 
+                    // para não ficar "piscando" a bolinha quando recebemos mensagem na conversa aberta
+                    if (payload.eventType === 'INSERT' && payload.new.direcao === 'entrada') {
+                        markAsRead()
+                    }
                 }
             )
             .subscribe((status) => {
