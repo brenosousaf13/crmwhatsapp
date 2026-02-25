@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label'
 
 interface ProviderSelectorProps {
     value: string
-    onChange: (val: any) => void
+    onChange: (val: string) => void
     disabled?: boolean
 }
 
@@ -24,8 +24,8 @@ export function ProviderSelector({ value, onChange, disabled }: ProviderSelector
                         key={p.id}
                         onClick={() => !disabled && onChange(p.id)}
                         className={`border rounded-lg p-4 cursor-pointer transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${value === p.id
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500'
-                                : 'border-gray-200 hover:border-gray-300 dark:border-gray-800'
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500'
+                            : 'border-gray-200 hover:border-gray-300 dark:border-gray-800'
                             }`}
                     >
                         <div className="flex items-center gap-2 mb-1">

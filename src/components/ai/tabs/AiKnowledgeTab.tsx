@@ -62,6 +62,7 @@ export function AiKnowledgeTab() {
             // Easiest hook-friendly way: just let it refetch on window focus or we can export a refetch fn.
             window.location.reload() // Or ideally we return a refetch() from the hook
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             toast.error(err.message)
         } finally {
@@ -74,7 +75,7 @@ export function AiKnowledgeTab() {
         try {
             await deleteDoc(id)
             toast.success('Documento removido.')
-        } catch (e) {
+        } catch {
             toast.error('Erro ao remover documento.')
         }
     }

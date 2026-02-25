@@ -83,7 +83,7 @@ export function AiPromptTab() {
         try {
             await updateConfig({ system_prompt: prompt, enabled_tools: enabledTools })
             toast.success('Prompt e Ferramentas salvos com sucesso!')
-        } catch (e: any) {
+        } catch {
             toast.error('Erro ao salvar prompt do Agente.')
         } finally {
             setIsSaving(false)
@@ -148,7 +148,7 @@ export function AiPromptTab() {
                         <Wrench className="w-5 h-5" /> Ferramentas Ativas (Tool Calling)
                     </CardTitle>
                     <CardDescription>
-                        Exponha à IA habilidades mecânicas que perturbam o CRM físico (só atuarão se você dar instruções de "quando acionar" ali em cima no Prompt).
+                        Exponha à IA habilidades mecânicas que perturbam o CRM físico (só atuarão se você dar instruções de &quot;quando acionar&quot; ali em cima no Prompt).
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">

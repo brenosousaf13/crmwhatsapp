@@ -1,13 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import * as pdfParseModule from 'pdf-parse'
 import mammoth from 'mammoth'
-
-// Handle ESModule / CommonJS interop issues for the PDF-Parse node package
-const pdfParse = (typeof pdfParseModule === 'function')
-    ? pdfParseModule
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    : (pdfParseModule as any).default || pdfParseModule
 
 export async function POST(request: Request) {
     try {
@@ -34,7 +27,10 @@ export async function POST(request: Request) {
             const type = file.type
 
             if (type === 'application/pdf') {
-                const data = await pdfParse(buffer)
+                // eslint-disable-next-line @typescript-eslint/no-require-imports
+                const pdfParse = require('pdf-parse')
+                const pdfParserFn = pdfParse.default || pdfParse
+                const data = await pdfParserFn(buffer)
                 extractedText = data.text
             }
             else if (type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {

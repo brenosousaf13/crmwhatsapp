@@ -234,6 +234,7 @@ export async function POST(request: Request) {
                 if (data.error) throw new Error(data.error.message)
                 responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error('[LLM ERROR]', err)
             llmError = err.message
@@ -289,6 +290,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true, processed: true, response_generated: !!responseText })
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error('[AI FATAL]', error)
         return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 })
@@ -298,6 +300,7 @@ export async function POST(request: Request) {
 import { decrypt } from '@/lib/crypto'
 
 // Helper to trigger the outbound whatsapp send
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function sendNativeMessage(supabase: any, organization_id: string, phone: string, text: string) {
     const { data: config } = await supabase
         .from('whatsapp_configs')

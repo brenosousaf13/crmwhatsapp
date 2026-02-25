@@ -19,7 +19,7 @@ export function AiStatusBanner() {
         try {
             await updateConfig({ enabled: checked })
             toast.success(`Agente IA ${checked ? 'ativado' : 'desativado'} com sucesso.`)
-        } catch (e: any) {
+        } catch {
             toast.error('Ocorreu um erro ao alterar o status do agente.')
         }
     }

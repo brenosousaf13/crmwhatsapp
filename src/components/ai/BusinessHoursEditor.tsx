@@ -31,7 +31,7 @@ export function BusinessHoursEditor({
     disabled
 }: BusinessHoursEditorProps) {
 
-    const updateDay = (dayKey: keyof BusinessHours, field: 'inicio' | 'fim' | 'ativo', value: any) => {
+    const updateDay = (dayKey: keyof BusinessHours, field: 'inicio' | 'fim' | 'ativo', value: string | boolean) => {
         onHoursChange({
             ...hours,
             [dayKey]: {

@@ -49,6 +49,7 @@ export function AiConfigTab() {
         </Card>
     )
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleChange = (field: keyof AiConfig, value: any) => {
         setFormData(prev => prev ? { ...prev, [field]: value } : prev)
     }
@@ -58,7 +59,7 @@ export function AiConfigTab() {
         try {
             await updateConfig(formData)
             toast.success('Configurações do Agente salvas com sucesso!')
-        } catch (e: any) {
+        } catch {
             toast.error('Erro ao salvar configurações.')
         } finally {
             setIsSaving(false)
@@ -133,7 +134,7 @@ export function AiConfigTab() {
                         <div className="space-y-3 pt-2">
                             <Label className="text-sm font-medium">OpenAI Key para Transcrição de Áudio (Opcional)</Label>
                             <p className="text-xs text-muted-foreground mb-1">
-                                Como você não está usando a OpenAI como provedor principal, precisará fornecer uma chave da OpenAI se desejar que este agente consiga "escutar" e transcrever áudios (usará Whisper).
+                                Como você não está usando a OpenAI como provedor principal, precisará fornecer uma chave da OpenAI se desejar que este agente consiga &quot;escutar&quot; e transcrever áudios (usará Whisper).
                             </p>
                             <Input
                                 type="password"
@@ -182,7 +183,7 @@ export function AiConfigTab() {
                             onChange={(e) => handleChange('context_window', parseInt(e.target.value))}
                             className="w-full accent-blue-600"
                         />
-                        <p className="text-xs text-muted-foreground">Quantas mensagens anteriores da conversa serão enviadas à IA para "memória". (Impacta custo de tokens)</p>
+                        <p className="text-xs text-muted-foreground">Quantas mensagens anteriores da conversa serão enviadas à IA para &quot;memória&quot;. (Impacta custo de tokens)</p>
                     </div>
 
                     <div className="space-y-4">
@@ -289,7 +290,7 @@ export function AiConfigTab() {
                     {/* Qualified Stage Select */}
                     {etapas.length > 0 && (
                         <div className="space-y-3 px-1 pt-4">
-                            <Label className="text-sm font-medium">Mover Leads para Etapa Quando "Qualificados pela IA" <span className="text-xs text-muted-foreground">(Action Tool)</span></Label>
+                            <Label className="text-sm font-medium">Mover Leads para Etapa Quando &quot;Qualificados pela IA&quot; <span className="text-xs text-muted-foreground">(Action Tool)</span></Label>
                             <select
                                 value={formData.qualified_stage_id || ''}
                                 onChange={(e) => handleChange('qualified_stage_id', e.target.value)}

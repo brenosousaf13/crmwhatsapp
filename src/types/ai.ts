@@ -62,7 +62,7 @@ export interface AiLog {
     input_tokens: number
     output_text?: string
     output_tokens: number
-    tool_calls?: any
+    tool_calls?: Record<string, unknown>[] | null
     model: string
     provider: string
     response_time_ms?: number
