@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import pdfParse from 'pdf-parse'
+import * as pdfParseModule from 'pdf-parse'
 import mammoth from 'mammoth'
+
+// Handle ESModule / CommonJS interop issues for the PDF-Parse node package
+const pdfParse = (typeof pdfParseModule === 'function')
+    ? pdfParseModule
+    : (pdfParseModule as any).default || pdfParseModule
 
 export async function POST(request: Request) {
     try {
