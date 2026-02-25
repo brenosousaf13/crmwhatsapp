@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { waitUntil } from '@vercel/functions'
+
+export const maxDuration = 60;
 
 // Using service role key for admin client since this is an external webhook without user context
 function createAdminClient() {
@@ -189,12 +192,17 @@ async function handleIncomingMessage(supabase: SupabaseClient, orgId: string, da
             })
 
             // Fire async request to AI Processor without awaiting its completion
-            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-            fetch(`${appUrl}/api/ai/process`, {
+            const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+            const protocol = host.includes('localhost') ? 'http://' : 'https://'
+            const appUrl = host.startsWith('http') ? host : `${protocol}${host}`
+
+            const aiCall = fetch(`${appUrl}/api/ai/process`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ organization_id: orgId, lead_id: leadId })
             }).catch(err => console.error('[Webhook AI Trigger Error]', err))
+
+            waitUntil(aiCall)
 
         } catch (queueErr) {
             console.error('[AI Queue Error]', queueErr)
