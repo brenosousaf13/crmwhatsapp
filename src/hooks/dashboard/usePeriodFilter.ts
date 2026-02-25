@@ -1,4 +1,5 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useMemo } from 'react'
 import { startOfDay, startOfMonth, subDays, subMonths, endOfMonth, endOfDay } from 'date-fns'
 
 export type PeriodOption = 'hoje' | '7d' | '30d' | '90d' | 'este_mes' | 'mes_passado' | 'personalizado'
@@ -31,38 +32,42 @@ export function usePeriodFilter() {
         router.push(`${pathname}?${params.toString()}`)
     }
 
-    const now = new Date()
-    let dateFrom: Date
-    let dateTo: Date = now
+    const { dateFrom, dateTo } = useMemo(() => {
+        const now = new Date()
+        let from: Date
+        let to: Date = now
 
-    switch (currentPeriod) {
-        case 'hoje':
-            dateFrom = startOfDay(now)
-            break
-        case '7d':
-            dateFrom = startOfDay(subDays(now, 7))
-            break
-        case '30d':
-            dateFrom = startOfDay(subDays(now, 30))
-            break
-        case '90d':
-            dateFrom = startOfDay(subDays(now, 90))
-            break
-        case 'este_mes':
-            dateFrom = startOfMonth(now)
-            break
-        case 'mes_passado':
-            dateFrom = startOfMonth(subMonths(now, 1))
-            dateTo = endOfMonth(subMonths(now, 1))
-            break
-        case 'personalizado':
-            dateFrom = deParam ? startOfDay(new Date(deParam)) : startOfDay(subDays(now, 30))
-            dateTo = ateParam ? endOfDay(new Date(ateParam)) : now
-            break
-        default:
-            dateFrom = startOfDay(subDays(now, 30))
-            break
-    }
+        switch (currentPeriod) {
+            case 'hoje':
+                from = startOfDay(now)
+                break
+            case '7d':
+                from = startOfDay(subDays(now, 7))
+                break
+            case '30d':
+                from = startOfDay(subDays(now, 30))
+                break
+            case '90d':
+                from = startOfDay(subDays(now, 90))
+                break
+            case 'este_mes':
+                from = startOfMonth(now)
+                break
+            case 'mes_passado':
+                from = startOfMonth(subMonths(now, 1))
+                to = endOfMonth(subMonths(now, 1))
+                break
+            case 'personalizado':
+                from = deParam ? startOfDay(new Date(deParam)) : startOfDay(subDays(now, 30))
+                to = ateParam ? endOfDay(new Date(ateParam)) : now
+                break
+            default:
+                from = startOfDay(subDays(now, 30))
+                break
+        }
+
+        return { dateFrom: from, dateTo: to }
+    }, [currentPeriod, deParam, ateParam])
 
     return {
         currentPeriod,
