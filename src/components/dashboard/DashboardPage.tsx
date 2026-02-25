@@ -13,7 +13,17 @@ import { useDashboardMetrics } from '@/hooks/dashboard/useDashboardMetrics'
 
 export function DashboardPage() {
     const { dateFrom, dateTo } = usePeriodFilter()
-    const { data: metrics, isLoading, isFetching, refetch } = useDashboardMetrics(dateFrom, dateTo)
+    const { data: metrics, isLoading, isFetching, refetch, isError, error } = useDashboardMetrics(dateFrom, dateTo)
+
+    if (isError) {
+        return (
+            <div className="flex-1 p-8 text-red-500 bg-red-50">
+                <h2 className="text-xl font-bold mb-2">Erro ao carregar Dashboard</h2>
+                <p>{error instanceof Error ? error.message : String(error)}</p>
+                <p className="mt-4 text-sm text-gray-700">Verifique se as funções SQL foram criadas corretamente no Supabase.</p>
+            </div>
+        )
+    }
 
     return (
         <div className="flex-1 space-y-6 p-6 sm:p-8 bg-gray-50/50 min-h-full">
