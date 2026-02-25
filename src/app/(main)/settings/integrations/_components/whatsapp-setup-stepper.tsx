@@ -288,6 +288,7 @@ export function WhatsAppSetupStepper({ open, onOpenChange, onComplete }: WhatsAp
                             <TabsContent value="qr" className="flex flex-col items-center justify-center p-6 border rounded-lg mt-4 bg-slate-50 min-h-[300px]">
                                 {qrCode ? (
                                     <>
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img src={qrCode} alt="WhatsApp QR Code" className="w-64 h-64 border p-2 bg-white rounded-md shadow-sm" />
                                         <p className="text-sm font-medium text-gray-600 mt-4 animate-pulse">Aguardando leitura...</p>
                                     </>

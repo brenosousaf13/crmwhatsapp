@@ -46,6 +46,7 @@ export async function GET(request: Request) {
             success: true,
             resumed_count: data?.length || 0
         })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
         return NextResponse.json({ error: err.message }, { status: 500 })
     }

@@ -77,7 +77,10 @@ export function WhatsAppIntegrationCard() {
                     <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 space-y-4">
                         <div className="flex items-center gap-4">
                             {status?.instance?.profilePicUrl ? (
-                                <img src={status.instance.profilePicUrl} alt="Profile" className="w-12 h-12 rounded-full border border-gray-200" />
+                                <>
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={status.instance.profilePicUrl} alt="Profile" className="w-12 h-12 rounded-full border border-gray-200" />
+                                </>
                             ) : (
                                 <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
                                     <MessageCircle className="w-6 h-6 text-gray-400" />

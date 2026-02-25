@@ -6,6 +6,7 @@ import mammoth from 'mammoth'
 // Handle ESModule / CommonJS interop issues for the PDF-Parse node package
 const pdfParse = (typeof pdfParseModule === 'function')
     ? pdfParseModule
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     : (pdfParseModule as any).default || pdfParseModule
 
 export async function POST(request: Request) {
@@ -50,6 +51,7 @@ export async function POST(request: Request) {
             else {
                 return NextResponse.json({ error: 'Formato não suportado para extração.' }, { status: 400 })
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             return NextResponse.json({ error: 'Falha ao ler conteúdo do arquivo: ' + err.message }, { status: 500 })
         }
@@ -63,7 +65,7 @@ export async function POST(request: Request) {
 
         // Opcional: só fazer upload do arquivo se quiser manter o original.
         // Vamos fazer o upload
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { data: uploadData } = await supabase.storage
             .from('ai-knowledge-base')
             .upload(fileName, file)
 
@@ -87,6 +89,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true, document: docData })
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error('OCR/Upload Error:', error)
         return NextResponse.json(
