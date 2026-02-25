@@ -5,7 +5,7 @@ import { format, isToday, isYesterday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useChat } from '../chat-context'
 import { useMessages } from '@/hooks/chat/use-messages'
-import { Check, CheckCheck, File, Image as ImageIcon, Mic, Video } from 'lucide-react'
+import { Check, CheckCheck, File, Image as ImageIcon, Mic, Video, Bot } from 'lucide-react'
 import { Loader2 } from 'lucide-react'
 
 function formatMessageTime(dateString: string) {
@@ -123,6 +123,7 @@ export function MessageList() {
                                         text-[10px] text-gray-500 flex items-center gap-1 leading-none
                                         ${(!msg.conteudo && msg.tipo !== 'texto') ? 'mt-1 self-end' : 'absolute bottom-1.5 right-2'}
                                     `}>
+                                        {msg.enviada_por_ia && <span title="Gerado pela IA"><Bot className="w-3.5 h-3.5 text-blue-500 mb-0.5" /></span>}
                                         {formatMessageTime(msg.timestamp)}
                                         {isOut && (
                                             msg.lida ? <CheckCheck className={`w-3.5 h-3.5 ${statusIconColor}`} /> : <Check className={`w-3.5 h-3.5 ${statusIconColor}`} />

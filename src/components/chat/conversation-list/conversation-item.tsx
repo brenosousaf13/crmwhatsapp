@@ -3,7 +3,7 @@
 import { format, isToday, isYesterday, isThisWeek } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useChat } from '../chat-context'
-import { Image as ImageIcon, Mic, Video, File, CheckCheck } from 'lucide-react'
+import { Image as ImageIcon, Mic, Video, File, CheckCheck, Bot, User } from 'lucide-react'
 
 // Types based on the supabase schema joined
 interface ConversationItemProps {
@@ -31,6 +31,7 @@ export function ConversationItem({ lead }: ConversationItemProps) {
 
     const isSelected = selectedLeadId === lead.id
     const hasUnread = (lead.mensagens_nao_lidas || 0) > 0
+    const isAiPaused = lead.ia_pausada
 
     // The joined messages is an array of 1 because we limited it in the query
     const lastMessage = lead.mensagens && lead.mensagens.length > 0 ? lead.mensagens[0] : null
@@ -96,6 +97,16 @@ export function ConversationItem({ lead }: ConversationItemProps) {
             <div className={`relative flex-shrink-0 w-12 h-12 rounded-full border-2 ${urgencyBorder} p-0.5`}>
                 <div className="w-full h-full rounded-full bg-slate-200 flex items-center justify-center text-sm font-semibold text-slate-600">
                     {initials}
+                </div>
+                <div
+                    className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-gray-100"
+                    title={isAiPaused ? "Atendimento Humano (IA Pausada)" : "IA Ativa"}
+                >
+                    {isAiPaused ? (
+                        <User className="w-3.5 h-3.5 text-orange-500" />
+                    ) : (
+                        <Bot className="w-3.5 h-3.5 text-blue-500" />
+                    )}
                 </div>
             </div>
 

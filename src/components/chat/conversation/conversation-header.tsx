@@ -1,15 +1,31 @@
 'use client'
 
 import { useChat } from '../chat-context'
-import { ArrowLeft, PanelRightClose, PanelRightOpen, MoreVertical } from 'lucide-react'
+import { ArrowLeft, PanelRightClose, PanelRightOpen, MoreVertical, PlayCircle, PauseCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useConversations } from '@/hooks/chat/use-conversations'
+import { createClient } from '@/lib/supabase/client'
+import { useCallback } from 'react'
 
 export function ConversationHeader() {
     const { selectedLeadId, setMobileViewIndex, isLeadPanelOpen, setIsLeadPanelOpen } = useChat()
     const { data: leads } = useConversations()
+    const supabase = createClient()
 
     const lead = leads?.find(l => l.id === selectedLeadId)
+
+    const handleToggleAi = useCallback(async () => {
+        if (!lead) return
+        const wasPaused = lead.ia_pausada
+        await supabase
+            .from('leads')
+            .update({
+                ia_pausada: !wasPaused,
+                ia_pausada_por: !wasPaused ? 'humano' : null,
+                ia_pausada_em: !wasPaused ? new Date().toISOString() : null
+            })
+            .eq('id', lead.id)
+    }, [lead, supabase])
 
     if (!lead) return null
 
@@ -59,6 +75,20 @@ export function ConversationHeader() {
                 </div>
             </div>
             <div className="flex items-center gap-1">
+                {lead && (
+                    <Button
+                        variant={lead.ia_pausada ? 'outline' : 'default'}
+                        size="sm"
+                        className={`h-8 px-2 text-xs hidden sm:flex ${lead.ia_pausada ? 'text-orange-600 border-orange-200 hover:bg-orange-50 dark:hover:bg-orange-950/30' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                        onClick={handleToggleAi}
+                    >
+                        {lead.ia_pausada ? (
+                            <><PlayCircle className="w-3.5 h-3.5 mr-1" /> Retomar IA</>
+                        ) : (
+                            <><PauseCircle className="w-3.5 h-3.5 mr-1" /> Pausar IA</>
+                        )}
+                    </Button>
+                )}
                 <Button
                     variant="ghost"
                     size="icon"

@@ -175,11 +175,42 @@ async function handleIncomingMessage(supabase: SupabaseClient, orgId: string, da
 
         // atomic increment using the new RPC function
         await supabase.rpc('increment_nao_lidas', { lead_row_id: leadId })
+
+        // ==========================================
+        // AI ENGINE TRIGGER (Fire-and-forget)
+        // ==========================================
+        try {
+            // Upsert processing queue to reset the timer for concatenation
+            await supabase.from('ai_processing_queue').upsert({
+                lead_id: leadId,
+                organization_id: orgId,
+                queued_at: new Date().toISOString(),
+                status: 'waiting'
+            })
+
+            // Fire async request to AI Processor without awaiting its completion
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+            fetch(`${appUrl}/api/ai/process`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ organization_id: orgId, lead_id: leadId })
+            }).catch(err => console.error('[Webhook AI Trigger Error]', err))
+
+        } catch (queueErr) {
+            console.error('[AI Queue Error]', queueErr)
+        }
+
     } else {
+        // If human answered, maybe pause AI based on config?
+        // Actually, we don't have access to configs here synchronously without fetching.
+        // It's safer to just auto-pause if fromMe is true, and let the AI process route ignore.
         await supabase.from('leads').update({
             atualizado_em: now,
             ultima_mensagem_at: now,
-            mensagens_nao_lidas: 0
+            mensagens_nao_lidas: 0,
+            ia_pausada: true,
+            ia_pausada_por: 'humano',
+            ia_pausada_em: now
         }).eq('id', leadId)
     }
 }

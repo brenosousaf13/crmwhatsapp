@@ -11,7 +11,8 @@ import {
     HelpCircle,
     LogOut,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Bot
 } from 'lucide-react'
 import { useOrganization } from '@/components/providers/organization-provider'
 import { createClient } from '@/lib/supabase/client'
@@ -51,6 +52,7 @@ export function Sidebar() {
         { name: 'Geral', href: '/settings', icon: Settings },
         { name: 'Equipe', href: '/settings/team', icon: Users },
         { name: 'Integrações', href: '/settings/integrations', icon: Settings },
+        { name: 'Agente IA', href: '/settings/ai', icon: Bot },
     ]
 
     const userInitial = user?.user_metadata?.name?.charAt(0) || user?.email?.charAt(0) || 'U'
