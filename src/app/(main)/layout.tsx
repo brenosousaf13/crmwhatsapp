@@ -2,6 +2,7 @@ import { OrganizationProvider } from '@/components/providers/organization-provid
 import { QueryProvider } from '@/components/providers/query-provider'
 import { Sidebar } from '@/components/sidebar'
 import { Header } from '@/components/header'
+import { Toaster } from 'sonner'
 
 export default function DashboardLayout({
     children,
@@ -20,6 +21,7 @@ export default function DashboardLayout({
                         </main>
                     </div>
                 </div>
+                <Toaster richColors position="top-right" />
             </OrganizationProvider>
         </QueryProvider>
     )
