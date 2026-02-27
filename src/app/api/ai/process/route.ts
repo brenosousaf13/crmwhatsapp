@@ -244,23 +244,40 @@ export async function POST(request: Request) {
 
         // 8. Physical action: Send WhatsApp Message & Save to DB
         if (responseText && !llmError) {
-            // Apply response delay to mimic human typing
-            await new Promise(resolve => setTimeout(resolve, config.response_delay_ms || 1000))
+            const parts = splitAiResponse(responseText)
 
-            // Send via Native WhatsApp Route we built earlier
-            await sendNativeMessage(supabase, organization_id, lead.telefone, responseText)
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i]
 
-            // Save to DB
-            await supabase.from('mensagens').insert({
-                organization_id,
-                lead_id,
-                direcao: 'saida',
-                conteudo: responseText,
-                tipo: 'texto',
-                enviada_por_ia: true,
-                lida: false,
-                timestamp: new Date().toISOString()
-            })
+                // Calcular delay proporcional ao tamanho (simula digitação)
+                // ~50ms por caractere = uma pessoa digitando
+                const typingDelay = Math.min(
+                    Math.max(part.length * 50, 800),       // mínimo 800ms
+                    config.response_delay_ms || 3000       // máximo configurado
+                )
+
+                // Aguardar antes de enviar (exceto a primeira que usa o delay inicial)
+                if (i > 0) {
+                    await new Promise(resolve => setTimeout(resolve, typingDelay))
+                } else {
+                    await new Promise(resolve => setTimeout(resolve, config.response_delay_ms || 1000))
+                }
+
+                // Send via Native WhatsApp Route we built earlier
+                await sendNativeMessage(supabase, organization_id, lead.telefone, part)
+
+                // Save to DB
+                await supabase.from('mensagens').insert({
+                    organization_id,
+                    lead_id,
+                    direcao: 'saida',
+                    conteudo: part,
+                    tipo: 'texto',
+                    enviada_por_ia: true,
+                    lida: false,
+                    timestamp: new Date().toISOString()
+                })
+            }
 
             // Mark last activity
             await supabase.from('leads').update({
@@ -330,4 +347,116 @@ async function sendNativeMessage(supabase: any, organization_id: string, phone: 
         const errData = await response.json().catch(() => ({}))
         console.error('[AI WhatsApp] Erro uazapi:', response.status, JSON.stringify(errData))
     }
+}
+
+// ==========================================
+// STRING SPLITTING LOGIC FOR NATURAL TYPING
+// ==========================================
+
+function splitAiResponse(text: string): string[] {
+    // Se o texto é curto (menos de 100 caracteres), enviar como está
+    if (text.length < 100) {
+        return [text.trim()]
+    }
+
+    // 1. Primeiro, dividir por quebras de linha duplas (parágrafos explícitos)
+    const paragraphs = text.split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
+
+    // 2. Para cada parágrafo, dividir por sentenças se for longo
+    const parts: string[] = []
+
+    for (const paragraph of paragraphs) {
+        if (paragraph.length < 150) {
+            // Parágrafo curto — enviar inteiro
+            parts.push(paragraph)
+        } else {
+            // Parágrafo longo — dividir por sentenças
+            const sentences = splitIntoSentences(paragraph)
+
+            // Agrupar sentenças em chunks de ~100-200 caracteres
+            let currentChunk = ''
+            for (const sentence of sentences) {
+                if (currentChunk.length + sentence.length > 200 && currentChunk.length > 0) {
+                    parts.push(currentChunk.trim())
+                    currentChunk = sentence
+                } else {
+                    currentChunk += (currentChunk ? ' ' : '') + sentence
+                }
+            }
+            if (currentChunk.trim()) {
+                parts.push(currentChunk.trim())
+            }
+        }
+    }
+
+    // 3. Se ainda assim não dividiu (texto sem pontuação), forçar split por vírgulas ou conjunções
+    if (parts.length === 1 && parts[0].length > 200) {
+        const fallbackParts = splitByConjunctions(parts[0])
+        parts.length = 0
+        parts.push(...fallbackParts)
+    }
+
+    // Após o split, verificar se alguma parte contém URL misturada com texto
+    const finalParts: string[] = []
+
+    for (const part of parts) {
+        const urlRegex = /(https?:\/\/\S+)/g
+        const urls = part.match(urlRegex)
+
+        if (urls && urls.length > 0) {
+            // Separar texto e URLs
+            let remaining = part
+            for (const url of urls) {
+                if (!remaining.includes(url)) continue
+                const [before] = remaining.split(url)
+                if (before.trim()) finalParts.push(before.trim())
+                finalParts.push(url.trim())  // URL sozinha na mensagem → WhatsApp gera preview
+                remaining = remaining.substring(remaining.indexOf(url) + url.length)
+            }
+            if (remaining.trim()) finalParts.push(remaining.trim())
+        } else {
+            finalParts.push(part)
+        }
+    }
+
+    return finalParts.filter(p => p.trim().length > 0)
+}
+
+function splitIntoSentences(text: string): string[] {
+    // Regex que divide por pontos finais, exclamações, interrogações
+    // Mas preserva abreviações comuns (R$, Sr., Sra., Dr., etc.)
+    // e URLs (https://...)
+    const sentences = text
+        .replace(/(https?:\/\/\S+)/g, '___URL_PLACEHOLDER___$1___URL_END___')
+        .split(/(?<=[.!?])\s+(?=[A-ZÁÀÂÃÉÈÊÍÓÔÕÚÇ])|(?<=[.!?])\s+(?=[\d])|(?<=[!?])\s+/)
+        .map(s => s.replace(/___URL_PLACEHOLDER___(.*?)___URL_END___/g, '$1'))
+        .filter(Boolean)
+
+    return sentences
+}
+
+function splitByConjunctions(text: string): string[] {
+    // Fallback: dividir por vírgulas seguidas de conjunções ou por ponto-e-vírgula
+    const parts = text
+        .split(/(?<=,)\s+(?=(?:e |mas |porém |então |porque |que |pois ))/i)
+        .filter(Boolean)
+
+    if (parts.length > 1) return parts.map(p => p.trim())
+
+    // Último recurso: dividir por vírgulas a cada ~150 chars
+    const result: string[] = []
+    let current = ''
+    const segments = text.split(/,\s*/)
+
+    for (const seg of segments) {
+        if (current.length + seg.length > 150 && current.length > 0) {
+            result.push(current.trim())
+            current = seg
+        } else {
+            current += (current ? ', ' : '') + seg
+        }
+    }
+    if (current.trim()) result.push(current.trim())
+
+    return result.length > 0 ? result : [text.trim()]
 }
