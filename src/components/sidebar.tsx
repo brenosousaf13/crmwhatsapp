@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils'
 import {
     LayoutDashboard,
     CheckSquare,
@@ -12,12 +13,102 @@ import {
     LogOut,
     ChevronLeft,
     ChevronRight,
-    Bot
+    Bot,
+    UsersRound,
+    Plug,
 } from 'lucide-react'
 import { useOrganization } from '@/components/providers/organization-provider'
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
+
+interface SidebarChildItem {
+    name: string
+    href: string
+}
+
+interface SidebarItemWithChildren {
+    name: string
+    icon: React.ElementType
+    children: SidebarChildItem[]
+}
+
+interface SidebarCollapsibleItemProps {
+    item: SidebarItemWithChildren
+    pathname: string
+    isCollapsed: boolean
+}
+
+function SidebarCollapsibleItem({ item, pathname, isCollapsed }: SidebarCollapsibleItemProps) {
+    const isChildActive = item.children.some((child) => pathname.startsWith(child.href))
+    const [isOpen, setIsOpen] = useState(isChildActive)
+
+    useEffect(() => {
+        if (isChildActive) {
+            setIsOpen(true)
+        }
+    }, [isChildActive])
+
+    return (
+        <div>
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                title={isCollapsed ? item.name : undefined}
+                className={cn(
+                    'w-full flex items-center rounded-lg py-2.5 transition-colors',
+                    isCollapsed ? 'justify-center px-0' : 'px-3 gap-3',
+                    isChildActive ? 'bg-[#232847] text-white' : 'hover:bg-[#232847] hover:text-white'
+                )}
+            >
+                <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                {!isCollapsed && (
+                    <>
+                        <span className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis flex-1 text-left">
+                            {item.name}
+                        </span>
+                        <ChevronRight
+                            className={cn(
+                                'h-4 w-4 transition-transform duration-200',
+                                isOpen && 'rotate-90'
+                            )}
+                        />
+                    </>
+                )}
+            </button>
+
+            {!isCollapsed && (
+                <div
+                    className={cn(
+                        'overflow-hidden transition-all duration-200',
+                        isOpen ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0'
+                    )}
+                >
+                    <div className="py-1 space-y-0.5 relative">
+                        {/* Linha guia visual */}
+                        <div className="absolute left-[21px] top-0 bottom-0 w-[1px] bg-white/10" />
+
+                        {item.children.map((child) => {
+                            const isChildCurrentlyActive = pathname.startsWith(child.href)
+                            return (
+                                <Link
+                                    key={child.href}
+                                    href={child.href}
+                                    className={cn(
+                                        'block pl-10 pr-3 py-2 text-[13px] rounded-md relative z-10',
+                                        'text-[#8B8FA3] hover:text-white hover:bg-[#232847] transition-colors',
+                                        isChildCurrentlyActive && 'text-white font-medium bg-[#232847]'
+                                    )}
+                                >
+                                    {child.name}
+                                </Link>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
 
 export function Sidebar() {
     const pathname = usePathname()
@@ -48,10 +139,26 @@ export function Sidebar() {
         { name: 'Chat', href: '/chat', icon: MessageCircle },
     ]
 
-    const settingsItems = [
-        { name: 'Geral', href: '/settings', icon: Settings },
-        { name: 'Equipe', href: '/settings/team', icon: Users },
-        { name: 'Integrações', href: '/settings/integrations', icon: Settings },
+    type SettingsItem = {
+        name: string
+        icon: React.ElementType
+        href?: string
+        children?: SidebarChildItem[]
+    }
+
+    const settingsItems: SettingsItem[] = [
+        {
+            name: 'Geral',
+            icon: Settings,
+            children: [
+                { name: 'Organização', href: '/settings/organization' },
+                { name: 'Etapas do Kanban', href: '/settings/kanban-stages' },
+                { name: 'Tags', href: '/settings/tags' },
+                { name: 'Respostas Rápidas', href: '/settings/quick-replies' },
+            ]
+        },
+        { name: 'Equipe', href: '/settings/team', icon: UsersRound },
+        { name: 'Integrações', href: '/settings/integrations', icon: Plug },
         { name: 'Agente IA', href: '/settings/ai', icon: Bot },
     ]
 
@@ -123,11 +230,23 @@ export function Sidebar() {
                     </div>
 
                     {settingsItems.map((item) => {
-                        const isActive = pathname === item.href
+                        if ('children' in item && item.children) { // Use type guard to check for children
+                            return (
+                                <SidebarCollapsibleItem
+                                    key={item.name}
+                                    item={item as SidebarItemWithChildren}
+                                    pathname={pathname}
+                                    isCollapsed={isCollapsed}
+                                />
+                            )
+                        }
+
+                        const href = item.href || '#'
+                        const isActive = pathname === href
                         return (
                             <Link
-                                key={item.href}
-                                href={item.href}
+                                key={href}
+                                href={href}
                                 title={isCollapsed ? item.name : undefined}
                                 className={`flex items-center rounded-lg py-2.5 transition-colors ${isCollapsed ? 'justify-center px-0' : 'px-3 gap-3'
                                     } ${isActive
