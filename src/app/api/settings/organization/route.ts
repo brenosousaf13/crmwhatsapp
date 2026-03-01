@@ -82,12 +82,11 @@ export async function PUT(request: Request) {
         }
 
         // 4. Atualizar
-        const { data: updated, error: updateError } = await supabase
+        const { data: updatedRows, error: updateError } = await supabase
             .from('organizations')
             .update(updateData)
             .eq('id', member.organization_id)
             .select()
-            .single()
 
         if (updateError) {
             console.error('Erro no UPDATE:', updateError)
@@ -98,6 +97,16 @@ export async function PUT(request: Request) {
                 hint: updateError.hint
             }, { status: 500 })
         }
+
+        if (!updatedRows || updatedRows.length === 0) {
+            console.error('Nenhuma linha atualizada. Possível bloqueio de RLS (Row Level Security).')
+            return NextResponse.json({
+                error: 'Acesso negado ou organização não encontrada.',
+                details: 'Nenhuma linha foi alterada. Verifique se as políticas RLS (Row Level Security) para UPDATE na tabela organizations estão corretas.'
+            }, { status: 403 })
+        }
+
+        const updated = updatedRows[0]
 
         console.log('Organização atualizada com sucesso:', updated?.id)
         return NextResponse.json(updated)
