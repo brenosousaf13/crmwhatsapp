@@ -31,10 +31,12 @@ ON CONFLICT (id) DO NOTHING;
 
 -- 5. Storage Policies for Logos bucket
 -- Allow public read access to logos
+DROP POLICY IF EXISTS "Public Access for Logos" ON storage.objects;
 CREATE POLICY "Public Access for Logos" ON storage.objects
   FOR SELECT USING (bucket_id = 'organization-logos');
 
 -- Allow authenticated users to upload/manage logos
+DROP POLICY IF EXISTS "Auth Users Manage Logos" ON storage.objects;
 CREATE POLICY "Auth Users Manage Logos" ON storage.objects
   FOR ALL USING (
     bucket_id = 'organization-logos' AND 

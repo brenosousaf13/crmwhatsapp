@@ -187,7 +187,7 @@ export function KanbanBoard() {
             if (!normalizedQuery) return true
             const matchName = item.name.toLowerCase().includes(normalizedQuery)
             const matchPhone = item.phone.includes(normalizedQuery)
-            const matchTags = item.tags?.some(t => t.toLowerCase().includes(normalizedQuery))
+            const matchTags = item.tags?.some(t => t.nome.toLowerCase().includes(normalizedQuery))
             return matchName || matchPhone || matchTags
         })
     }))
