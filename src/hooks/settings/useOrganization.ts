@@ -49,8 +49,8 @@ export function useOrganization(orgId: string | undefined) {
             // Custom event if needed globally
             window.dispatchEvent(new Event('organization-updated'))
         },
-        onError: (err: any) => {
-            toast.error('Erro ao atualizar: ' + err.message)
+        onError: (error: Error) => {
+            toast.error('Erro ao atualizar organização: ' + error.message)
         }
     })
 

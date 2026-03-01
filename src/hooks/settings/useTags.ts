@@ -55,8 +55,8 @@ export function useTags() {
             queryClient.invalidateQueries({ queryKey })
             toast.success('Tag criada com sucesso.')
         },
-        onError: (err: any) => {
-            toast.error('Erro ao criar tag: ' + err.message)
+        onError: (error: Error) => {
+            toast.error('Erro ao adicionar tag: ' + error.message)
         }
     })
 
@@ -77,8 +77,8 @@ export function useTags() {
             queryClient.invalidateQueries({ queryKey })
             toast.success('Tag atualizada.')
         },
-        onError: (err: any) => {
-            toast.error('Erro ao atualizar tag: ' + err.message)
+        onError: (error: Error) => {
+            toast.error('Erro ao atualizar tag: ' + error.message)
         }
     })
 
@@ -107,8 +107,8 @@ export function useTags() {
             queryClient.invalidateQueries({ queryKey })
             toast.success('Tag excluída.')
         },
-        onError: (err: any) => {
-            toast.error('Erro ao excluir tag: ' + err.message)
+        onError: (error: Error) => {
+            toast.error('Erro ao excluir tag: ' + error.message)
         }
     })
 

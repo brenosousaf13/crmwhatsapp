@@ -82,7 +82,7 @@ export function OrganizationForm({ orgId }: { orgId: string }) {
         const payload = Object.entries(data).reduce((acc, [key, value]) => {
             acc[key as keyof FormValues] = value === '' ? null : value
             return acc
-        }, {} as any)
+        }, {} as Record<string, string | null>)
 
         await updateOrganization(payload)
     }

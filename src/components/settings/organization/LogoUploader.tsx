@@ -1,7 +1,7 @@
+/* eslint-disable @next/next/no-img-element */
 'use client'
 
 import { useRef, useState } from "react"
-import Image from "next/image"
 import { Building2, UploadCloud, Trash2, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -35,9 +35,10 @@ export function LogoUploader({ currentLogoUrl, onUpload, onRemove }: LogoUploade
         setIsUploading(true)
         try {
             await onUpload(file)
-        } catch (err: any) {
-            console.error('Upload falhou:', err)
-            toast.error('Falha ao enviar a logo: ' + err.message)
+        } catch (error: unknown) {
+            console.error('Upload falhou:', error)
+            const msg = error instanceof Error ? error.message : "Erro desconhecido"
+            toast.error('Falha ao enviar a logo: ' + msg)
         } finally {
             setIsUploading(false)
             if (fileInputRef.current) {
@@ -50,9 +51,10 @@ export function LogoUploader({ currentLogoUrl, onUpload, onRemove }: LogoUploade
         setIsRemoving(true)
         try {
             await onRemove()
-        } catch (err: any) {
-            console.error('Remoção falhou:', err)
-            toast.error('Falha ao remover a logo: ' + err.message)
+        } catch (error: unknown) {
+            console.error('Remoção falhou:', error)
+            const msg = error instanceof Error ? error.message : "Erro desconhecido"
+            toast.error('Falha ao remover a logo: ' + msg)
         } finally {
             setIsRemoving(false)
         }

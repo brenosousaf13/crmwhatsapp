@@ -66,8 +66,8 @@ export function useKanbanStages() {
             queryClient.invalidateQueries({ queryKey })
             toast.success('Etapa criada com sucesso.')
         },
-        onError: (err: any) => {
-            toast.error('Erro ao criar etapa: ' + err.message)
+        onError: (error: Error) => {
+            toast.error('Erro ao criar etapa: ' + error.message)
         }
     })
 
@@ -87,8 +87,8 @@ export function useKanbanStages() {
             queryClient.invalidateQueries({ queryKey })
             toast.success('Etapa atualizada.')
         },
-        onError: (err: any) => {
-            toast.error('Erro ao atualizar etapa: ' + err.message)
+        onError: (error: Error) => {
+            toast.error('Erro ao atualizar etapa: ' + error.message)
         }
     })
 
@@ -115,8 +115,8 @@ export function useKanbanStages() {
             queryClient.invalidateQueries({ queryKey })
             toast.success('Etapa excluída.')
         },
-        onError: (err: any) => {
-            toast.error('Erro ao excluir etapa: ' + err.message)
+        onError: (error: Error) => {
+            toast.error('Erro ao excluir etapa: ' + error.message)
         }
     })
 
@@ -154,11 +154,11 @@ export function useKanbanStages() {
 
             return { previousStages }
         },
-        onError: (err: any, _, context) => {
+        onError: (error: Error, _, context) => {
             if (context?.previousStages) {
                 queryClient.setQueryData(queryKey, context.previousStages)
             }
-            toast.error('Erro ao reordenar: ' + err.message)
+            toast.error('Erro ao reordenar: ' + error.message)
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey })

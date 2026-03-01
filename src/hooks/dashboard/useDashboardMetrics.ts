@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { useOrganization } from '@/components/providers/organization-provider'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 
 export interface DashboardMetrics {
     total_leads: number;
@@ -29,7 +29,7 @@ export function useDashboardMetrics(dateFrom: Date, dateTo: Date) {
     const supabase = createClient()
     const queryClient = useQueryClient()
 
-    const queryKey = ['dashboard-metrics', organization?.id, dateFrom.toISOString(), dateTo.toISOString()]
+    const queryKey = useMemo(() => ['dashboard-metrics', organization?.id, dateFrom.toISOString(), dateTo.toISOString()], [organization?.id, dateFrom, dateTo])
 
     const query = useQuery({
         queryKey,

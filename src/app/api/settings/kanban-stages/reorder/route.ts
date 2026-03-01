@@ -30,8 +30,8 @@ export async function PUT(request: Request) {
         await Promise.all(updates)
 
         return NextResponse.json({ success: true })
-    } catch (error: any) {
-        console.error('Error in PUT /api/settings/kanban-stages/reorder:', error)
+    } catch (error: unknown) {
+        console.error('Error reordering stages:', error)
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
     }
 }

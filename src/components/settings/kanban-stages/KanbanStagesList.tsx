@@ -24,7 +24,7 @@ interface KanbanStagesListProps {
     stages: (KanbanStage & { leadsCount: number })[]
     onEdit: (stage: KanbanStage) => void
     onDelete: (stage: KanbanStage) => void
-    onReorder: (orderedIds: string[]) => Promise<any>
+    onReorder: (orderedIds: string[]) => Promise<boolean>
 }
 
 export function KanbanStagesList({ stages, onEdit, onDelete, onReorder }: KanbanStagesListProps) {
@@ -59,7 +59,7 @@ export function KanbanStagesList({ stages, onEdit, onDelete, onReorder }: Kanban
 
                 // Trigger background save
                 const orderedIds = newOrder.map(item => item.id)
-                onReorder(orderedIds).catch(err => {
+                onReorder(orderedIds).catch(() => {
                     // Revert on failure
                     setItems(stages)
                 })

@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { useOrganization } from '@/components/providers/organization-provider'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 
 export interface TeamPerformanceMember {
     atendente_id: string;
@@ -19,7 +19,7 @@ export function useTeamPerformance(dateFrom: Date, dateTo: Date) {
     const supabase = createClient()
     const queryClient = useQueryClient()
 
-    const queryKey = ['team-performance', organization?.id, dateFrom.toISOString(), dateTo.toISOString()]
+    const queryKey = useMemo(() => ['team-performance', organization?.id, dateFrom.toISOString(), dateTo.toISOString()], [organization?.id, dateFrom, dateTo])
 
     const query = useQuery({
         queryKey,

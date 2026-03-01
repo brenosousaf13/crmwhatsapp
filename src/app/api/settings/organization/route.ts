@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { cookies } from 'next/headers'
-
 export async function GET(request: Request) {
     try {
         const supabase = await createClient()
@@ -31,7 +29,7 @@ export async function GET(request: Request) {
         }
 
         return NextResponse.json(org)
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error in GET /api/settings/organization:', error)
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
     }
@@ -69,7 +67,7 @@ export async function PUT(request: Request) {
         }
 
         return NextResponse.json(org)
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error in PUT /api/settings/organization:', error)
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
     }
@@ -112,7 +110,7 @@ export async function DELETE(request: Request) {
         }
 
         return NextResponse.json({ success: true })
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error in DELETE /api/settings/organization:', error)
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
     }
