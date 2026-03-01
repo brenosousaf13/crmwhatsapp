@@ -77,8 +77,16 @@ export function KanbanListView({ columns, onCardClick }: KanbanListViewProps) {
                                 <td className="px-6 py-4">
                                     <div className="flex flex-wrap gap-1 max-w-[200px]">
                                         {lead.tags?.slice(0, 2).map((tag, i) => (
-                                            <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-600 truncate">
-                                                {tag}
+                                            <span
+                                                key={i}
+                                                className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border truncate"
+                                                style={{
+                                                    backgroundColor: `${tag.cor}15`,
+                                                    color: tag.cor,
+                                                    borderColor: `${tag.cor}40`
+                                                }}
+                                            >
+                                                {tag.nome}
                                             </span>
                                         ))}
                                         {lead.tags && lead.tags.length > 2 && (
