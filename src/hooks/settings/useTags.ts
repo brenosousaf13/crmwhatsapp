@@ -53,6 +53,8 @@ export function useTags() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey })
+            queryClient.invalidateQueries({ queryKey: ['kanban', orgId] })
+            queryClient.invalidateQueries({ queryKey: ['leads', orgId] })
             toast.success('Tag criada com sucesso.')
         },
         onError: (error: Error) => {
@@ -75,6 +77,8 @@ export function useTags() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey })
+            queryClient.invalidateQueries({ queryKey: ['kanban', orgId] })
+            queryClient.invalidateQueries({ queryKey: ['leads', orgId] })
             toast.success('Tag atualizada.')
         },
         onError: (error: Error) => {
@@ -105,6 +109,8 @@ export function useTags() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey })
+            queryClient.invalidateQueries({ queryKey: ['kanban', orgId] })
+            queryClient.invalidateQueries({ queryKey: ['leads', orgId] })
             toast.success('Tag excluída.')
         },
         onError: (error: Error) => {

@@ -15,7 +15,7 @@ interface DbMessage {
 }
 
 interface DbLeadTag {
-    tags?: { nome?: string } | { nome?: string }[]
+    tags?: { id?: string; nome?: string; cor?: string } | { id?: string; nome?: string; cor?: string }[]
 }
 
 interface DbAtendimento {
@@ -76,7 +76,7 @@ export function useKanbanBoard() {
                     etapa_id,
                     atualizado_em,
                     atendimentos ( user_profiles ( nome ) ),
-                    lead_tags ( tags ( nome ) ),
+                    lead_tags ( tags ( id, nome, cor ) ),
                     mensagens ( conteudo, timestamp, lida, direcao )
                 `)
                 .eq('organization_id', organization.id)
@@ -106,9 +106,9 @@ export function useKanbanBoard() {
                     const leadTags = Array.isArray(lead.lead_tags) ? lead.lead_tags : []
                     const tags = leadTags.flatMap((lt: unknown) => {
                         const tagsProp = (lt as DbLeadTag).tags
-                        if (Array.isArray(tagsProp)) return tagsProp.map(t => t.nome)
-                        return tagsProp?.nome ? [tagsProp.nome] : []
-                    }).filter(Boolean) as string[]
+                        if (Array.isArray(tagsProp)) return tagsProp.filter(t => t.id && t.nome && t.cor).map(t => ({ id: t.id!, nome: t.nome!, cor: t.cor! }))
+                        return tagsProp?.id && tagsProp?.nome && tagsProp?.cor ? [{ id: tagsProp.id, nome: tagsProp.nome, cor: tagsProp.cor }] : []
+                    })
 
                     return {
                         id: lead.id,

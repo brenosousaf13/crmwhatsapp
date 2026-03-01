@@ -12,9 +12,11 @@ import { ptBR } from 'date-fns/locale'
 import { MessageCircle, Phone, Mail, Calendar, DollarSign, Edit2, Save, X, History, StickyNote, User } from 'lucide-react'
 import { useLeadHistory } from '@/app/(main)/kanban/_logic/use-kanban'
 import { useLeadNotes, useAddLeadNote } from '@/app/(main)/kanban/_logic/use-kanban'
-import { useUpdateLead } from '@/hooks/leads/useLeadMutations'
+import { useUpdateLead, useManageLeadTags } from '@/hooks/leads/useLeadMutations'
 import { useRouter } from 'next/navigation'
 import type { LeadRow } from '@/hooks/leads/useLeads'
+import { TagSelector } from '@/components/shared/TagSelector'
+import type { Tag } from '@/hooks/settings/useTags'
 
 interface LeadDetailDrawerProps {
     lead: LeadRow | null
@@ -85,6 +87,17 @@ function ResumoTab({ lead, etapas }: { lead: LeadRow; etapas: { id: string; nome
     const [email, setEmail] = useState(lead.email || '')
     const [valorVenda, setValorVenda] = useState(lead.valor_venda?.toString() || '')
     const { mutate: updateLead, isPending } = useUpdateLead()
+    const { mutate: manageTags } = useManageLeadTags()
+
+    const handleAddTag = (tag: Tag) => {
+        const newTags = [...lead.tags.map(t => t.id), tag.id]
+        manageTags({ leadId: lead.id, tagIds: Array.from(new Set(newTags)) })
+    }
+
+    const handleRemoveTag = (tagId: string) => {
+        const newTags = lead.tags.map(t => t.id).filter(id => id !== tagId)
+        manageTags({ leadId: lead.id, tagIds: newTags })
+    }
 
     const handleSave = () => {
         updateLead({
@@ -190,18 +203,14 @@ function ResumoTab({ lead, etapas }: { lead: LeadRow; etapas: { id: string; nome
             </div>
 
             {/* Tags */}
-            {lead.tags.length > 0 && (
-                <div>
-                    <p className="text-xs text-gray-500 mb-2">Tags</p>
-                    <div className="flex flex-wrap gap-1.5">
-                        {lead.tags.map(t => (
-                            <Badge key={t.id} className="text-[11px]" style={{ backgroundColor: t.cor + '20', color: t.cor }}>
-                                {t.nome}
-                            </Badge>
-                        ))}
-                    </div>
-                </div>
-            )}
+            <div>
+                <p className="text-xs text-gray-500 mb-2">Tags</p>
+                <TagSelector
+                    selectedTags={lead.tags}
+                    onAddTag={handleAddTag}
+                    onRemoveTag={handleRemoveTag}
+                />
+            </div>
 
             {/* Atendente */}
             {lead.atendente_nome && (

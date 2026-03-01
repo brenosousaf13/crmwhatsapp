@@ -39,37 +39,57 @@ export async function PUT(request: Request) {
     try {
         const supabase = await createClient()
         const body = await request.json()
-        const { org_id, ...updateData } = body
 
-        if (!org_id) {
-            return NextResponse.json({ error: 'org_id is required' }, { status: 400 })
-        }
-
-        // Auth verification
+        // 1. Auth verification
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        // Validate the user belongs to the org and has permission (RLS handles this but we can add explicit checks if needed)
-        // For now, relying on RLS `UPDATE` policies on `organizations` table
+        // 2. Load context membership
+        const { data: member } = await supabase
+            .from('organization_members')
+            .select('organization_id, role')
+            .eq('user_id', user.id)
+            .single()
 
+        if (!member) {
+            return NextResponse.json({ error: 'Forbidden: No valid organization found' }, { status: 403 })
+        }
+
+        // 3. Permitted fields whitelisting
+        const allowedFields = [
+            'nome', 'segmento', 'website', 'timezone', 'moeda',
+            'phone_format', 'email', 'telefone', 'endereco', 'logo_url'
+        ]
+        const updateData: Record<string, any> = {}
+        for (const field of allowedFields) {
+            if (body[field] !== undefined) {
+                updateData[field] = body[field]
+            }
+        }
+
+        if (Object.keys(updateData).length === 0) {
+            return NextResponse.json({ error: 'No valid fields provided to update.' }, { status: 400 })
+        }
+
+        // 4. Update targeting internal auth session token (RLS validates owner)
         const { data: org, error } = await supabase
             .from('organizations')
             .update(updateData)
-            .eq('id', org_id)
+            .eq('id', member.organization_id)
             .select()
             .single()
 
         if (error) {
             console.error('Error updating organization:', error)
-            return NextResponse.json({ error: 'Failed to update organization' }, { status: 500 })
+            return NextResponse.json({ error: 'Failed to update organization', details: error.message }, { status: 500 })
         }
 
         return NextResponse.json(org)
-    } catch (error: unknown) {
+    } catch (error: any) {
         console.error('Error in PUT /api/settings/organization:', error)
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+        return NextResponse.json({ error: 'Internal Server Error', details: error?.message || String(error) }, { status: 500 })
     }
 }
 

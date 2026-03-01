@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { useOrganization } from '@/components/providers/organization-provider'
 import { useLeads, type LeadRow, type LeadsFilters } from '@/hooks/leads/useLeads'
-import { useCreateLead, useMoveLeadEtapa, useDeleteLeads, useManageLeadTags } from '@/hooks/leads/useLeadMutations'
+import { useCreateLead, useMoveLeadEtapa, useDeleteLeads, useManageLeadTags, useBulkAddTag, useBulkRemoveTag } from '@/hooks/leads/useLeadMutations'
 import { useLeadsExport } from '@/hooks/leads/useLeadsExport'
 import { LeadsMetrics } from './LeadsMetrics'
 import { LeadsToolbar } from './LeadsToolbar'
@@ -89,6 +89,8 @@ function LeadsPageInner() {
     const { mutate: moveEtapa } = useMoveLeadEtapa()
     const { mutate: deleteLeads } = useDeleteLeads()
     const { mutate: manageTags } = useManageLeadTags()
+    const { mutate: bulkAddTag } = useBulkAddTag()
+    const { mutate: bulkRemoveTag } = useBulkRemoveTag()
     const { exportCSV, exporting } = useLeadsExport()
 
     // Checar filtros ativos
@@ -225,6 +227,9 @@ function LeadsPageInner() {
                 onBulkMoveEtapa={() => { }} // TODO: implementar modal de seleção de etapa
                 onBulkAssign={() => { }} // TODO: implementar modal de seleção de atendente
                 onBulkDelete={handleBulkDelete}
+                tags={allTags}
+                onBulkAddTag={(tagId) => bulkAddTag({ leadIds: Array.from(selectedIds), tagId }, { onSuccess: () => setSelectedIds(new Set()) })}
+                onBulkRemoveTag={(tagId) => bulkRemoveTag({ leadIds: Array.from(selectedIds), tagId }, { onSuccess: () => setSelectedIds(new Set()) })}
                 onDeselectAll={handleDeselectAll}
             />
 

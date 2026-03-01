@@ -14,7 +14,7 @@ export interface KanbanCardData {
     urgency: string
     lastMessage?: string
     lastMessageTime?: string
-    tags?: string[]
+    tags?: { id: string; nome: string; cor: string }[]
     assignee?: string
     unreadCount: number
     waitTime?: string | null
@@ -101,9 +101,9 @@ export function KanbanCard({ data, onClick }: KanbanCardProps) {
             {/* Tags limit 3 */}
             {data.tags && data.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-3">
-                    {data.tags.slice(0, 3).map((tag: string, i: number) => (
-                        <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-600">
-                            {tag}
+                    {data.tags.slice(0, 3).map((tag, i: number) => (
+                        <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium" style={{ backgroundColor: `${tag.cor}20`, color: tag.cor }}>
+                            {tag.nome}
                         </span>
                     ))}
                     {data.tags.length > 3 && (

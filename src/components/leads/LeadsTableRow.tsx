@@ -17,6 +17,8 @@ import { formatDistanceToNow, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useRouter } from 'next/navigation'
 import type { LeadRow } from '@/hooks/leads/useLeads'
+import { TagSelector } from '@/components/shared/TagSelector'
+import type { Tag } from '@/hooks/settings/useTags'
 
 interface LeadsTableRowProps {
     lead: LeadRow
@@ -69,11 +71,21 @@ export function LeadsTableRow({
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     tags: _allTags,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    onTagsChange: _onTagsChange,
+    onTagsChange,
 }: LeadsTableRowProps) {
     const router = useRouter()
     const lost = isLost(lead.etapa_nome)
     const textColor = lost ? 'text-gray-400' : 'text-gray-900'
+
+    const handleAddTag = (tag: Tag) => {
+        const newTags = [...lead.tags.map(t => t.id), tag.id]
+        onTagsChange(lead.id, Array.from(new Set(newTags)))
+    }
+
+    const handleRemoveTag = (tagId: string) => {
+        const newTags = lead.tags.map(t => t.id).filter(id => id !== tagId)
+        onTagsChange(lead.id, newTags)
+    }
 
     return (
         <tr
@@ -139,32 +151,14 @@ export function LeadsTableRow({
                 </DropdownMenu>
             </td>
 
-            {/* Tags */}
-            <td className="px-3">
-                <div className="flex items-center gap-1 flex-wrap">
-                    {lead.tags.slice(0, 2).map(tag => (
-                        <span
-                            key={tag.id}
-                            className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium"
-                            style={{ backgroundColor: tag.cor + '20', color: tag.cor }}
-                        >
-                            {tag.nome}
-                        </span>
-                    ))}
-                    {lead.tags.length > 2 && (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <span className="text-[11px] text-gray-400 font-medium">+{lead.tags.length - 2}</span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {lead.tags.slice(2).map(t => t.nome).join(', ')}
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    )}
-                    {lead.tags.length === 0 && <span className="text-gray-400 text-sm">—</span>}
-                </div>
+            {/* Tags (inline edit) */}
+            <td className="px-3 py-2">
+                <TagSelector
+                    selectedTags={lead.tags}
+                    onAddTag={handleAddTag}
+                    onRemoveTag={handleRemoveTag}
+                    size="sm"
+                />
             </td>
 
             {/* Atendente */}

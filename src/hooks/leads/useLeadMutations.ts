@@ -242,3 +242,45 @@ export function useManageLeadTags() {
         },
     })
 }
+
+// Ações em lote: adicionar tag
+export function useBulkAddTag() {
+    const { organization } = useOrganization()
+    const queryClient = useQueryClient()
+    const orgId = organization?.id
+
+    return useMutation({
+        mutationFn: async ({ leadIds, tagId }: { leadIds: string[]; tagId: string }) => {
+            const rows = leadIds.map(leadId => ({ lead_id: leadId, tag_id: tagId }))
+            const { error } = await supabase.from('lead_tags').upsert(rows, { onConflict: 'lead_id,tag_id', ignoreDuplicates: true })
+            if (error) throw error
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['leads', orgId] })
+            queryClient.invalidateQueries({ queryKey: ['kanban'] })
+        },
+    })
+}
+
+// Ações em lote: remover tag
+export function useBulkRemoveTag() {
+    const { organization } = useOrganization()
+    const queryClient = useQueryClient()
+    const orgId = organization?.id
+
+    return useMutation({
+        mutationFn: async ({ leadIds, tagId }: { leadIds: string[]; tagId: string }) => {
+            const { error } = await supabase
+                .from('lead_tags')
+                .delete()
+                .in('lead_id', leadIds)
+                .eq('tag_id', tagId)
+
+            if (error) throw error
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['leads', orgId] })
+            queryClient.invalidateQueries({ queryKey: ['kanban'] })
+        },
+    })
+}

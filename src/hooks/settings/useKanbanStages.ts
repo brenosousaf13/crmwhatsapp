@@ -64,6 +64,7 @@ export function useKanbanStages() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey })
+            queryClient.invalidateQueries({ queryKey: ['kanban', orgId] })
             toast.success('Etapa criada com sucesso.')
         },
         onError: (error: Error) => {
@@ -85,6 +86,7 @@ export function useKanbanStages() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey })
+            queryClient.invalidateQueries({ queryKey: ['kanban', orgId] })
             toast.success('Etapa atualizada.')
         },
         onError: (error: Error) => {
@@ -113,6 +115,7 @@ export function useKanbanStages() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey })
+            queryClient.invalidateQueries({ queryKey: ['kanban', orgId] })
             toast.success('Etapa excluída.')
         },
         onError: (error: Error) => {
@@ -162,6 +165,7 @@ export function useKanbanStages() {
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey })
+            queryClient.invalidateQueries({ queryKey: ['kanban', orgId] })
         }
     })
 

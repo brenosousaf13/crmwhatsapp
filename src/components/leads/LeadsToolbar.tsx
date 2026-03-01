@@ -29,6 +29,9 @@ interface LeadsToolbarProps {
     onBulkMoveEtapa: () => void
     onBulkAssign: () => void
     onBulkDelete: () => void
+    tags: { id: string; nome: string; cor: string }[]
+    onBulkAddTag: (tagId: string) => void
+    onBulkRemoveTag: (tagId: string) => void
     onDeselectAll: () => void
 }
 
@@ -61,6 +64,9 @@ export function LeadsToolbar({
     onBulkMoveEtapa,
     onBulkAssign,
     onBulkDelete,
+    tags,
+    onBulkAddTag,
+    onBulkRemoveTag,
     onDeselectAll,
 }: LeadsToolbarProps) {
     // Debounce da busca
@@ -91,6 +97,32 @@ export function LeadsToolbar({
                     <Button variant="outline" size="sm" onClick={onBulkAssign}>
                         Atribuir a ▾
                     </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm">Adicionar Tag ▾</Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            {tags.map(t => (
+                                <DropdownMenuItem key={t.id} onClick={() => onBulkAddTag(t.id)}>
+                                    <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: t.cor }} />
+                                    {t.nome}
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm">Remover Tag ▾</Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            {tags.map(t => (
+                                <DropdownMenuItem key={t.id} onClick={() => onBulkRemoveTag(t.id)}>
+                                    <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: t.cor }} />
+                                    {t.nome}
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                     <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={onBulkDelete}>
                         🗑️
                     </Button>
