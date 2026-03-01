@@ -67,7 +67,7 @@ export async function PUT(request: Request) {
             'phone_format', 'email', 'telefone', 'endereco', 'logo_url'
         ]
 
-        const updateData: Record<string, any> = {}
+        const updateData: Record<string, unknown> = {}
         for (const field of allowedFields) {
             if (body[field] !== undefined) {
                 updateData[field] = body[field]
@@ -102,12 +102,13 @@ export async function PUT(request: Request) {
         console.log('Organização atualizada com sucesso:', updated?.id)
         return NextResponse.json(updated)
 
-    } catch (err: any) {
-        console.error('PUT /api/settings/organization erro fatal:', err)
+    } catch (err: unknown) {
+        const error = err as Error
+        console.error('PUT /api/settings/organization erro fatal:', error)
         return NextResponse.json({
             error: 'Erro interno do servidor',
-            details: err.message,
-            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+            details: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         }, { status: 500 })
     }
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Plus, X, Search, Check } from 'lucide-react'
+import { Plus, X, Search } from 'lucide-react'
 import { Tag, useTags } from '@/hooks/settings/useTags'
 import * as Popover from '@radix-ui/react-popover'
 import { cn } from '@/lib/utils'
