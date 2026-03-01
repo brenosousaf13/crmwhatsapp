@@ -38,30 +38,35 @@ export async function GET(request: Request) {
 export async function PUT(request: Request) {
     try {
         const supabase = await createClient()
-        const body = await request.json()
 
         // 1. Auth verification
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError || !user) {
+            return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
         }
 
-        // 2. Load context membership
-        const { data: member } = await supabase
+        // 2. Buscar org do usuário
+        const { data: member, error: memberError } = await supabase
             .from('organization_members')
-            .select('organization_id, role')
+            .select('organization_id')
             .eq('user_id', user.id)
             .single()
 
-        if (!member) {
-            return NextResponse.json({ error: 'Forbidden: No valid organization found' }, { status: 403 })
+        if (memberError || !member) {
+            console.error('Erro ao buscar membro:', memberError)
+            return NextResponse.json({ error: 'Organização não encontrada' }, { status: 404 })
         }
 
-        // 3. Permitted fields whitelisting
+        // 3. Ler body do request
+        const body = await request.json()
+        console.log('PUT organization body recebido:', JSON.stringify(body))
+
+        // Extrair apenas campos permitidos (ignorar org_id, id, criado_em, etc)
         const allowedFields = [
             'nome', 'segmento', 'website', 'timezone', 'moeda',
             'phone_format', 'email', 'telefone', 'endereco', 'logo_url'
         ]
+
         const updateData: Record<string, any> = {}
         for (const field of allowedFields) {
             if (body[field] !== undefined) {
@@ -69,27 +74,41 @@ export async function PUT(request: Request) {
             }
         }
 
+        console.log('Campos a atualizar:', JSON.stringify(updateData))
+        console.log('Organization ID:', member.organization_id)
+
         if (Object.keys(updateData).length === 0) {
-            return NextResponse.json({ error: 'No valid fields provided to update.' }, { status: 400 })
+            return NextResponse.json({ error: 'Nenhum campo válido para atualizar' }, { status: 400 })
         }
 
-        // 4. Update targeting internal auth session token (RLS validates owner)
-        const { data: org, error } = await supabase
+        // 4. Atualizar
+        const { data: updated, error: updateError } = await supabase
             .from('organizations')
             .update(updateData)
             .eq('id', member.organization_id)
             .select()
             .single()
 
-        if (error) {
-            console.error('Error updating organization:', error)
-            return NextResponse.json({ error: 'Failed to update organization', details: error.message }, { status: 500 })
+        if (updateError) {
+            console.error('Erro no UPDATE:', updateError)
+            return NextResponse.json({
+                error: 'Falha ao atualizar',
+                details: updateError.message,
+                code: updateError.code,
+                hint: updateError.hint
+            }, { status: 500 })
         }
 
-        return NextResponse.json(org)
-    } catch (error: any) {
-        console.error('Error in PUT /api/settings/organization:', error)
-        return NextResponse.json({ error: 'Internal Server Error', details: error?.message || String(error) }, { status: 500 })
+        console.log('Organização atualizada com sucesso:', updated?.id)
+        return NextResponse.json(updated)
+
+    } catch (err: any) {
+        console.error('PUT /api/settings/organization erro fatal:', err)
+        return NextResponse.json({
+            error: 'Erro interno do servidor',
+            details: err.message,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        }, { status: 500 })
     }
 }
 

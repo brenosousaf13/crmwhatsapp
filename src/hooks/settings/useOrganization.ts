@@ -38,9 +38,15 @@ export function useOrganization(orgId: string | undefined) {
             const res = await fetch(`/api/settings/organization`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ org_id: orgId, ...data })
+                body: JSON.stringify(data)
             })
-            if (!res.ok) throw new Error('Falha ao atualizar a organização')
+
+            if (!res.ok) {
+                const errorBody = await res.json().catch(() => ({}))
+                console.error('Erro ao atualizar organização:', errorBody)
+                throw new Error(errorBody.details || errorBody.error || 'Falha ao atualizar a organização')
+            }
+
             return res.json()
         },
         onSuccess: () => {
