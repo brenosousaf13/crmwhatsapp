@@ -39,17 +39,20 @@ export default function QuickRepliesSettingsPage() {
         if (confirm(`Tem certeza que deseja excluir a resposta rápida "${reply.titulo}" (/ ${reply.atalho})?`)) {
             try {
                 await deleteReply(reply.id)
-            } catch (err: any) {
-                toast.error(err.message)
+            } catch (error: unknown) {
+                if (error instanceof Error) {
+                    toast.error(error.message)
+                } else {
+                    toast.error("Erro ao excluir resposta rápida.")
+                }
             }
         }
     }
-
     const handleSaveReply = async (data: Partial<QuickReply>) => {
         if (replyToEdit) {
             await updateReply({ id: replyToEdit.id, ...data })
         } else {
-            await addReply(data as any)
+            await addReply(data as Omit<QuickReply, 'id'>)
         }
     }
 

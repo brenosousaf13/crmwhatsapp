@@ -61,7 +61,7 @@ export async function DELETE(
         }
 
         return NextResponse.json({ success: true })
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error(`Error in DELETE /api/settings/kanban-stages/[id]:`, error)
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
     }

@@ -32,17 +32,20 @@ export default function TagsSettingsPage() {
         if (confirm(`Tem certeza que deseja excluir a tag "${tag.nome}"? Esta ação removerá a tag de todos os leads associados.`)) {
             try {
                 await deleteTag(tag.id)
-            } catch (err: any) {
-                toast.error(err.message)
+            } catch (error: unknown) {
+                if (error instanceof Error) {
+                    toast.error(error.message)
+                } else {
+                    toast.error("Erro ao excluir tag.")
+                }
             }
         }
     }
-
     const handleSaveTag = async (data: Partial<Tag>) => {
         if (tagToEdit) {
             await updateTag({ id: tagToEdit.id, ...data })
         } else {
-            await addTag(data as any)
+            await addTag(data as Omit<Tag, 'id' | 'organization_id' | 'created_at'>)
         }
     }
 

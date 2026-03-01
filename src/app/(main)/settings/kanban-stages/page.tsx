@@ -46,7 +46,7 @@ export default function KanbanStagesSettingsPage() {
         } else {
             // For new stages, automatically append them to the end
             const newOrdem = stages ? stages.length : 0
-            await addStage({ ...data, ordem: newOrdem } as any)
+            await addStage({ ...data, ordem: newOrdem } as Omit<KanbanStage, 'id' | 'organization_id'>)
         }
     }
 

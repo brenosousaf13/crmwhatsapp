@@ -141,7 +141,7 @@ export function KanbanStageModal({ isOpen, onClose, onSave, initialData }: Kanba
                                     checked={tipo === 'ganho'}
                                     onChange={() => setTipo('ganho')}
                                     className="w-4 h-4 text-green-600 focus:ring-green-500"
-                                    disabled={initialData && initialData.tipo !== 'ganho' && initialData.tipo !== 'normal'} // Example restriction logic
+                                    disabled={!!initialData && initialData.tipo !== 'ganho' && initialData.tipo !== 'normal'} // Example restriction logic
                                 />
                                 <div className="flex flex-col">
                                     <span className="text-sm font-medium text-gray-900">Etapa de ganho (Win)</span>
@@ -157,7 +157,7 @@ export function KanbanStageModal({ isOpen, onClose, onSave, initialData }: Kanba
                                     checked={tipo === 'perdido'}
                                     onChange={() => setTipo('perdido')}
                                     className="w-4 h-4 text-red-600 focus:ring-red-500"
-                                    disabled={initialData && initialData.tipo !== 'perdido' && initialData.tipo !== 'normal'}
+                                    disabled={!!initialData && initialData.tipo !== 'perdido' && initialData.tipo !== 'normal'}
                                 />
                                 <div className="flex flex-col">
                                     <span className="text-sm font-medium text-gray-900">Etapa de perda (Loss)</span>

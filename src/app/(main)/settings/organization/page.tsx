@@ -4,13 +4,11 @@ import { SettingsPageHeader } from "@/components/settings/SettingsPageHeader"
 import { OrganizationForm } from "@/components/settings/organization/OrganizationForm"
 import { DeleteOrganizationModal } from "@/components/settings/organization/DeleteOrganizationModal"
 import { useOrganization } from "@/components/providers/organization-provider"
-import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 
 export default function OrganizationSettingsPage() {
     const { organization, isLoading } = useOrganization()
-    const router = useRouter()
 
     const handleDeleteOrganization = async () => {
         if (!organization?.id) return
@@ -28,8 +26,12 @@ export default function OrganizationSettingsPage() {
             toast.success('Organização excluída permanentemente.')
             // Redirecionar para a tela de escolha/criação de nova org (ou login)
             window.location.href = '/' // Isso força o recarregamento total; middleware deve redirecionar prum onboarding ou login se não tiver org
-        } catch (err: any) {
-            toast.error(err.message)
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                toast.error(error.message)
+            } else {
+                toast.error("Ocorreu um erro desconhecido.")
+            }
         }
     }
 
