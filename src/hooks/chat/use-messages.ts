@@ -59,7 +59,9 @@ export function useMessages(leadId: string | null) {
 
         markAsRead()
 
-        const channel = supabase.channel(`chat-messages-${leadId}`)
+        console.log('[Realtime-Messages] Assinando canal para lead:', leadId)
+        const uniqueChannelId = `chat-messages-${leadId}-${Math.random().toString(36).substring(7)}`
+        const channel = supabase.channel(uniqueChannelId)
             .on(
                 'postgres_changes',
                 {
@@ -76,8 +78,9 @@ export function useMessages(leadId: string | null) {
 
                     if (isForThisLead) {
                         console.log('[Realtime-Messages] Nova mensagem/update detectado:', payload.eventType)
-                        queryClient.invalidateQueries({ queryKey })
-                        // Também atualizar a lista de conversas (preview na sidebar)
+
+                        // Use strict explicit array to avoid closure staleness issues
+                        queryClient.invalidateQueries({ queryKey: ['messages', orgId, leadId] })
                         queryClient.invalidateQueries({ queryKey: ['conversations', orgId] })
 
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any

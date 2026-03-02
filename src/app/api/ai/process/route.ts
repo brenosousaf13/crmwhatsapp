@@ -376,7 +376,7 @@ export async function POST(request: Request) {
                     conteudo: part,
                     tipo: 'texto',
                     enviada_por_ia: true,
-                    lida: false,
+                    lida: true,
                     timestamp: new Date().toISOString()
                 })
             }
