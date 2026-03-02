@@ -338,14 +338,20 @@ export function buildSystemPromptWithToolInstructions(
     toolInstructions.push(`Você tem acesso a ferramentas (tools) que executam ações reais no CRM. Use-as ativamente quando apropriado.\n`)
 
     if (enabledTools.includes('mover_lead_etapa')) {
+        const kanbanNames = Array.isArray(aiConfig.kanban_stages) && aiConfig.kanban_stages.length > 0
+            ? aiConfig.kanban_stages.join('", "')
+            : 'N/A'
+
         toolInstructions.push(`
 ### Tool: mover_lead_etapa
 - Use quando identificar mudança no estágio do lead no funil de vendas.
+- ETAPAS DO KANBAN DISPONÍVEIS (ordem do funil): ["${kanbanNames}"]
 - Exemplos de quando usar:
-  - Lead demonstra interesse concreto → mover para "Negociando"
-  - Lead quer fechar negócio → mover para etapa de fechamento
+  - Lead demonstra interesse concreto → avançar no funil
+  - Lead finaliza a negociação (comprou, assinou, pagou) → MOVER OBRIGATORIAMENTE para a última etapa de sucesso (ex: "Fechado", "Ganho", "Pagamento Confirmado")
   - Lead não tem interesse → mover para etapa de perda
-- Parâmetros: etapa_nome (o nome da etapa, ex: "Negociando", "Fechado/Ganho"), resposta_para_cliente (a mensagem que você enviará ao cliente)`)
+- IMPORTANTE: Se o cliente enviar comprovantes ou disser claramente "comprei" / "paguei", você deve usar esta tool IMEDIATAMENTE.
+- Parâmetros: etapa_nome (o nome EXATO de uma das etapas acima), resposta_para_cliente (a mensagem que você enviará ao cliente)`)
     }
 
     if (enabledTools.includes('qualificar_lead')) {
@@ -378,13 +384,13 @@ export function buildSystemPromptWithToolInstructions(
 - Campos disponíveis:
   - "email" → quando o lead informar seu email
   - "observacoes" → objeções, preocupações, preferências, necessidades específicas, qualquer detalhe relevante da conversa
-  - "orcamento_monetario_reais" → quando o lead mencionar orçamento, quanto quer gastar, ou valor do negócio (APENAS VALOR MONETÁRIO, NUNCA TAMANHOS DE ROUPA/SAPATO)
-  - "produto_interesse" → produto ou serviço específico que o lead demonstrou interesse
+  - "orcamento_monetario_reais" → quando o lead mencionar orçamento financeiro ou verba disponível (APENAS VALOR MONETÁRIO. NUNCA REGISTRE códigos de peça, metragens, ou tamanhos como orçamento.)
+  - "produto_interesse" → produto, serviço ou item específico que o lead demonstrou interesse
 - Exemplos:
-  - Lead diz "meu email é joao@email.com" → chamar registrar_info(campo: "email", valor: "joao@email.com", resposta_para_cliente: "Ok, email anotado!")
-  - Lead diz "achei meio caro" → chamar registrar_info(campo: "observacoes", valor: "Objeção de preço: achou caro", resposta_para_cliente: "Entendi sua preocupação com o preço. Posso te explicar melhor as opções?")
-  - Lead diz "quero gastar uns 500 reais" → chamar registrar_info(campo: "orcamento_monetario_reais", valor: "500", resposta_para_cliente: "Certo, R$500 anotado. Vamos encontrar algo que se encaixe!")
-  - Lead diz "to procurando calça skinny" → chamar registrar_info(campo: "produto_interesse", valor: "Calça Skinny", resposta_para_cliente: "Ótimo! Temos várias calças skinny. Qual tamanho você procura?")
+  - Lead diz "meu email é contato@email.com" → chamar registrar_info(campo: "email", valor: "contato@email.com", resposta_para_cliente: "Email anotado!")
+  - Lead diz "achei o valor alto" → chamar registrar_info(campo: "observacoes", valor: "Objeção de preço", resposta_para_cliente: "Entendo...")
+  - Lead diz "posso investir 2 mil reais" → chamar registrar_info(campo: "orcamento_monetario_reais", valor: "2000", resposta_para_cliente: "Certo, R$2.000 anotado!")
+  - Lead quer um item específico do catálogo → chamar registrar_info(campo: "produto_interesse", valor: "Nome do Item", resposta_para_cliente: "Ótima escolha!")
 - Você pode chamar esta tool JUNTO com a resposta de texto, não precisa ser separado.`)
     }
 
@@ -413,12 +419,12 @@ export function buildSystemPromptWithToolInstructions(
 
     prompt += "\n\n---\n" +
         "⚠️ REGRAS CRÍTICAS DE COMUNICAÇÃO (MUITO IMPORTANTE):\n" +
-        "1. VOCÊ É O VENDEDOR NO WHATSAPP.\n" +
+        "1. VOCÊ É O ESPECIALISTA DE ATENDIMENTO.\n" +
         "2. Se você decidir chamar uma ferramenta (ex: registrar_info, mover_lead_etapa), VOCÊ DEVE OBRIGATORIAMENTE preencher o campo 'resposta_para_cliente' dentro da chamada da ferramenta COM O TEXTO QUE O CLIENTE VAI LER.\n" +
         "3. Nunca chame a ferramenta sem responder ao cliente! Se você salvar um dado, confirme de forma natural ou continue a conversa.\n" +
         "4. NÃO USE a ferramenta de adicionar tag. APENAS registre interesses em notas.\n" +
-        "5. NÃO confunda TAMANHO de roupa ou sapato (38, 40, 42, P, M, G) com 'orcamento_monetario_reais'. Orçamento é apenas valor monetário (R$ 100, R$ 50).\n" +
-        "6. Quando o lead pedir um produto e você tiver o catálogo, NÃO diga 'vou verificar a disponibilidade' ou 'um momento'. Simplesmente ENVIE OS LINKS E PRODUTOS imediatamente no seu texto (ou no campo 'resposta_para_cliente'). Não simule esperas sistêmicas.\n---\n"
+        "5. NÃO confunda números de referência operacionais (como códigos de estoque, CEPs, números de sapato/roupa, metragens) com 'orcamento_monetario_reais'. Orçamento é EXCLUSIVAMENTE valor monetário em dinheiro.\n" +
+        "6. Quando o lead pedir um serviço ou item e você o tiver no catálogo (enviado em suas instruções gerais), NÃO simule esperas sistêmicas. Simplesmente ENVIE OS LINKS E PRODUTOS imediatamente no seu texto (ou no campo 'resposta_para_cliente'). Não diga 'vou verificar'.\n---\n"
 
     return prompt + toolInstructions.join('\n')
 }
@@ -482,8 +488,8 @@ export function buildToolDefinitions(enabledTools: string[]): Record<string, unk
 Use a ferramenta "registrar_info" APENAS quando o cliente fornecer dados muito claros:
 - "email": Se enviar um formato válido de email.
 - "observacoes": Objeções, preferências, qualquer detalhe relevante.
-- "produto_interesse": Se disser o que quer comprar (adicione como nota).
-- "orcamento_monetario_reais": SÓ USE se falar de dinheiro monetário (Ex: orçamento de 500 reais). NUNCA registre tamanhos (42, P, M).`,
+- "produto_interesse": Se disser o que quer comprar/contratar (adicione como nota).
+- "orcamento_monetario_reais": SÓ USE se falar de dinheiro monetário (Ex: orçamento de 500 reais). NUNCA registre códigos operacionais, metragens, referências ou tamanhos (como 42, P, M).`,
                 parameters: {
                     type: 'object',
                     properties: {

@@ -133,10 +133,19 @@ export async function POST(request: Request) {
             if (stage) qualifiedStageName = stage.nome
         }
 
+        // Fetch ALL Kanban stages to give the AI context of the funnel
+        const { data: todasEtapas } = await supabase
+            .from('etapas_kanban')
+            .select('nome')
+            .eq('organization_id', organization_id)
+            .order('ordem', { ascending: true })
+
+        const kanbanStagesList = todasEtapas ? todasEtapas.map(e => e.nome) : []
+
         const systemPrompt = buildSystemPromptWithToolInstructions(
             systemPromptText,
             config.enabled_tools || [],
-            { ...config, qualified_stage_name: qualifiedStageName }
+            { ...config, qualified_stage_name: qualifiedStageName, kanban_stages: kanbanStagesList }
         )
 
         // Simple RAG context injection
