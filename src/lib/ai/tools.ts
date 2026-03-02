@@ -417,7 +417,8 @@ export function buildSystemPromptWithToolInstructions(
         "2. Se você decidir chamar uma ferramenta (ex: registrar_info, mover_lead_etapa), VOCÊ DEVE OBRIGATORIAMENTE preencher o campo 'resposta_para_cliente' dentro da chamada da ferramenta COM O TEXTO QUE O CLIENTE VAI LER.\n" +
         "3. Nunca chame a ferramenta sem responder ao cliente! Se você salvar um dado, confirme de forma natural ou continue a conversa.\n" +
         "4. NÃO USE a ferramenta de adicionar tag. APENAS registre interesses em notas.\n" +
-        "5. NÃO confunda TAMANHO de roupa ou sapato (38, 40, 42, P, M, G) com 'orcamento_monetario_reais'. Orçamento é apenas valor monetário (R$ 100, R$ 50).\n---\n"
+        "5. NÃO confunda TAMANHO de roupa ou sapato (38, 40, 42, P, M, G) com 'orcamento_monetario_reais'. Orçamento é apenas valor monetário (R$ 100, R$ 50).\n" +
+        "6. Quando o lead pedir um produto e você tiver o catálogo, NÃO diga 'vou verificar a disponibilidade' ou 'um momento'. Simplesmente ENVIE OS LINKS E PRODUTOS imediatamente no seu texto (ou no campo 'resposta_para_cliente'). Não simule esperas sistêmicas.\n---\n"
 
     return prompt + toolInstructions.join('\n')
 }
@@ -497,7 +498,7 @@ Use a ferramenta "registrar_info" APENAS quando o cliente fornecer dados muito c
                         },
                         resposta_para_cliente: {
                             type: 'string',
-                            description: 'A resposta textual em linguagem natural que será enviada ao cliente no WhatsApp afirmando a conversa, enviada no exato momento do registro.'
+                            description: 'A resposta textual natural enviada ao cliente. IMPORTANTE: Se o cliente pediu um produto, ENVIE O LINK/CATÁLOGO AQUI mesmo. Nunca diga "vou verificar".'
                         }
                     },
                     required: ['campo', 'valor', 'resposta_para_cliente']
