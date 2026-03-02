@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { buildSystemPromptWithToolInstructions, buildToolDefinitions, executeToolCall } from '@/lib/ai/tools'
+
 
 // Using service role key for backend AI processing without auth context
 function createAdminClient() {
@@ -117,9 +119,25 @@ export async function POST(request: Request) {
         const orderedMensagens = (mensagens || []).reverse()
 
         // 6. Build the LLM Context
-        const systemPrompt = config.system_prompt
+        const systemPromptText = config.system_prompt
             .replace('{{lead.nome}}', lead.nome || 'Cliente')
             .replace('{{lead.telefone}}', lead.telefone || '')
+
+        let qualifiedStageName = 'Qualificado'
+        if (config.qualified_stage_id) {
+            const { data: stage } = await supabase
+                .from('etapas_kanban')
+                .select('nome')
+                .eq('id', config.qualified_stage_id)
+                .single()
+            if (stage) qualifiedStageName = stage.nome
+        }
+
+        const systemPrompt = buildSystemPromptWithToolInstructions(
+            systemPromptText,
+            config.enabled_tools || [],
+            { ...config, qualified_stage_name: qualifiedStageName }
+        )
 
         // Simple RAG context injection
         const { data: kbDocs } = await supabase
@@ -149,31 +167,53 @@ export async function POST(request: Request) {
             })
         ]
 
+        // Prepare tools for LLM
+        const toolsPayload = buildToolDefinitions(config.enabled_tools || [])
+
         // 7. Invoke LLM Based on Provider
         const startTime = Date.now()
         let responseText = ''
         let inputTokens = 0
         let outputTokens = 0
         let llmError = null
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let toolCalls: any[] = []
 
         try {
             if (config.provider === 'openai') {
+                const reqBody: Record<string, unknown> = {
+                    model: config.model,
+                    temperature: config.temperature,
+                    messages: messagesForLlm
+                }
+
+                if (toolsPayload && toolsPayload.length > 0) {
+                    reqBody.tools = toolsPayload
+                    reqBody.tool_choice = "auto"
+                }
+
                 const res = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${config.api_key}`
                     },
-                    body: JSON.stringify({
-                        model: config.model,
-                        temperature: config.temperature,
-                        messages: messagesForLlm,
-                        // TODO: Map tools array to OpenAI JSON Schema based on config.enabled_tools
-                    })
+                    body: JSON.stringify(reqBody)
                 })
                 const data = await res.json()
                 if (data.error) throw new Error(data.error.message)
-                responseText = data.choices[0]?.message?.content || ''
+
+                const message = data.choices[0]?.message
+                responseText = message?.content || ''
+
+                if (message?.tool_calls) {
+                    toolCalls = message.tool_calls.map((t: { function: { name: string; arguments: string } }) => {
+                        let parsedArgs = {}
+                        try { parsedArgs = JSON.parse(t.function.arguments || '{}') } catch { /* ignore */ }
+                        return { name: t.function.name, arguments: parsedArgs }
+                    })
+                }
+
                 inputTokens = data.usage?.prompt_tokens || 0
                 outputTokens = data.usage?.completion_tokens || 0
 
@@ -185,6 +225,26 @@ export async function POST(request: Request) {
                     content: m.content
                 }))
 
+                const reqBody: Record<string, unknown> = {
+                    model: config.model,
+                    temperature: config.temperature,
+                    max_tokens: 1024,
+                    system: system,
+                    messages: thread
+                }
+
+                // Anthropic tools support (Beta format)
+                if (toolsPayload && toolsPayload.length > 0) {
+                    reqBody.tools = toolsPayload.map(t => {
+                        const func = t.function as { name: string; description: string; parameters: Record<string, unknown> };
+                        return {
+                            name: func.name,
+                            description: func.description,
+                            input_schema: func.parameters
+                        }
+                    })
+                }
+
                 const res = await fetch('https://api.anthropic.com/v1/messages', {
                     method: 'POST',
                     headers: {
@@ -192,17 +252,25 @@ export async function POST(request: Request) {
                         'x-api-key': config.api_key,
                         'anthropic-version': '2023-06-01'
                     },
-                    body: JSON.stringify({
-                        model: config.model,
-                        temperature: config.temperature,
-                        max_tokens: 1024,
-                        system: system,
-                        messages: thread
-                    })
+                    body: JSON.stringify(reqBody)
                 })
                 const data = await res.json()
                 if (data.error) throw new Error(data.error.message)
-                responseText = data.content?.[0]?.text || ''
+
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const textBlock = data.content?.find((c: any) => c.type === 'text')
+                responseText = textBlock?.text || ''
+
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const toolBlocks = data.content?.filter((c: any) => c.type === 'tool_use')
+                if (toolBlocks && toolBlocks.length > 0) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    toolCalls = toolBlocks.map((t: any) => ({
+                        name: t.name,
+                        arguments: t.input || {}
+                    }))
+                }
+
                 inputTokens = data.usage?.input_tokens || 0
                 outputTokens = data.usage?.output_tokens || 0
 
@@ -220,29 +288,71 @@ export async function POST(request: Request) {
                     role: "user",
                     parts: [{ text: `SYSTEM INSTRUCTION: ${messagesForLlm[0].content}` }]
                 }
+
+                const reqBody: Record<string, unknown> = {
+                    contents: [sysPart, ...thread],
+                    generationConfig: {
+                        temperature: config.temperature
+                    }
+                }
+
+                if (toolsPayload && toolsPayload.length > 0) {
+                    reqBody.tools = [{
+                        functionDeclarations: toolsPayload.map(t => {
+                            const func = t.function as { name: string; description: string; parameters: Record<string, unknown> };
+                            return {
+                                name: func.name,
+                                description: func.description,
+                                parameters: func.parameters
+                            }
+                        })
+                    }]
+                }
+
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${config.api_key}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [sysPart, ...thread],
-                        generationConfig: {
-                            temperature: config.temperature
-                        }
-                    })
+                    body: JSON.stringify(reqBody)
                 })
                 const data = await res.json()
                 if (data.error) throw new Error(data.error.message)
-                responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+
+                const parts = data.candidates?.[0]?.content?.parts || []
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const textPart = parts.find((p: any) => p.text)
+                responseText = textPart?.text || ''
+
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const callParts = parts.filter((p: any) => p.functionCall)
+                if (callParts && callParts.length > 0) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    toolCalls = callParts.map((p: any) => ({
+                        name: p.functionCall.name,
+                        arguments: p.functionCall.args || {}
+                    }))
+                }
             }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('[LLM ERROR]', err)
-            llmError = err.message
+            llmError = err instanceof Error ? err.message : String(err)
         }
 
         const endTime = Date.now()
 
-        // 8. Physical action: Send WhatsApp Message & Save to DB
+        // 8. Execute Tool Calls
+        if (toolCalls && toolCalls.length > 0) {
+            for (const toolCall of toolCalls) {
+                console.log(`[IA] Executando tool: ${toolCall.name}`, JSON.stringify(toolCall.arguments))
+                try {
+                    await executeToolCall(supabase, toolCall, lead, organization_id, config)
+                    console.log(`[IA] Tool ${toolCall.name} executada com sucesso`)
+                } catch (err: unknown) {
+                    console.error(`[IA] Erro ao executar tool ${toolCall.name}:`, err instanceof Error ? err.message : String(err))
+                }
+            }
+        }
+
+        // 9. Physical action: Send WhatsApp Message & Save to DB
         if (responseText && !llmError) {
             const parts = splitAiResponse(responseText)
 
@@ -284,9 +394,12 @@ export async function POST(request: Request) {
                 atualizado_em: new Date().toISOString(),
                 ultima_mensagem_at: new Date().toISOString()
             }).eq('id', lead_id)
+
+            // Auto-mover lead para Em Contato
+            await autoMoveToEmContato(supabase, lead, organization_id)
         }
 
-        // 9. Write Telemetry Log
+        // 10. Write Telemetry Log
         await supabase.from('ai_logs').insert({
             organization_id,
             lead_id,
@@ -294,7 +407,7 @@ export async function POST(request: Request) {
             input_tokens: inputTokens,
             output_text: responseText,
             output_tokens: outputTokens,
-            tool_calls: null, // Placeholder for tools later
+            tool_calls: toolCalls.length > 0 ? toolCalls : null,
             model: config.model,
             provider: config.provider,
             response_time_ms: endTime - startTime,
@@ -302,23 +415,21 @@ export async function POST(request: Request) {
             error: llmError
         })
 
-        // 10. Clean up Queue
+        // 11. Clean up Queue
         await supabase.from('ai_processing_queue').delete().eq('lead_id', lead_id)
 
         return NextResponse.json({ success: true, processed: true, response_generated: !!responseText })
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[AI FATAL]', error)
-        return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 })
+        return NextResponse.json({ error: 'Internal Server Error', details: error instanceof Error ? error.message : String(error) }, { status: 500 })
     }
 }
 
 import { decrypt } from '@/lib/crypto'
 
 // Helper to trigger the outbound whatsapp send
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function sendNativeMessage(supabase: any, organization_id: string, phone: string, text: string) {
+async function sendNativeMessage(supabase: SupabaseClient, organization_id: string, phone: string, text: string) {
     const { data: config } = await supabase
         .from('whatsapp_configs')
         .select('*')
@@ -459,4 +570,71 @@ function splitByConjunctions(text: string): string[] {
     if (current.trim()) result.push(current.trim())
 
     return result.length > 0 ? result : [text.trim()]
+}
+
+// ==========================================
+// AUTO-MOVE TO "EM CONTATO" LOGIC
+// ==========================================
+
+async function autoMoveToEmContato(supabase: SupabaseClient, lead: Record<string, unknown>, organizationId: string) {
+    // Buscar a etapa atual do lead
+    const { data: currentStage } = await supabase
+        .from('etapas_kanban')
+        .select('id, nome, tipo, ordem')
+        .eq('id', lead.etapa_id)
+        .single()
+
+    // Se o lead está na primeira etapa (menor ordem) ou numa etapa chamada "Novo"
+    // e essa etapa é do tipo 'normal' (não é ganho/perdido)
+    const isFirstStage = currentStage?.nome?.toLowerCase().includes('novo')
+
+    if (!isFirstStage) return // Lead já avançou, não fazer nada
+
+    // Buscar a etapa "Em contato" (segunda etapa do pipeline)
+    const { data: emContatoStage } = await supabase
+        .from('etapas_kanban')
+        .select('id, nome')
+        .eq('organization_id', organizationId)
+        .eq('tipo', 'normal')
+        .ilike('nome', '%contato%')
+        .limit(1)
+        .single()
+
+    // Fallback: se não encontrar por nome, pegar a segunda etapa por ordem
+    let targetStageId = emContatoStage?.id
+    if (!targetStageId) {
+        const { data: stages } = await supabase
+            .from('etapas_kanban')
+            .select('id, nome, ordem')
+            .eq('organization_id', organizationId)
+            .eq('tipo', 'normal')
+            .order('ordem', { ascending: true })
+            .limit(2)
+
+        // Pegar a segunda etapa (index 1), pois a primeira é "Novo"
+        if (stages && stages.length > 1) {
+            targetStageId = stages[1].id
+        }
+    }
+
+    if (!targetStageId || targetStageId === lead.etapa_id) return // Já está na etapa certa
+
+    // Mover o lead
+    await supabase
+        .from('leads')
+        .update({ etapa_id: targetStageId })
+        .eq('id', lead.id)
+
+    // Registrar evento
+    await supabase.from('lead_events').insert({
+        lead_id: lead.id,
+        organization_id: organizationId,
+        tipo: 'etapa_alterada',
+        descricao: `IA iniciou conversa — movido de "${currentStage?.nome}" para "Em contato"`,
+        metadata: {
+            de: currentStage?.nome,
+            para: emContatoStage?.nome || 'Em contato',
+            por: 'ia_auto'
+        }
+    })
 }
