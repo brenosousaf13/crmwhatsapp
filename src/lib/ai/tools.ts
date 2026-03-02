@@ -218,23 +218,30 @@ export async function executeToolCall(
                     break
                 }
 
-                case 'valor_potencial': {
+                case 'orcamento_monetario_reais': {
                     const numericValue = parseFloat((valor as string).replace(/[^\d.,]/g, '').replace(',', '.')) || 0
 
                     await supabase
                         .from('leads')
-                        .update({ valor_venda: numericValue })
+                        .update({ valor_potencial: numericValue })
                         .eq('id', lead.id)
 
+                    // Também salva como nota para histórico
+                    await supabase.from('lead_notas').insert({
+                        lead_id: lead.id,
+                        organization_id: organizationId,
+                        conteudo: `Orçamento financeiro informado: R$ ${numericValue}`,
+                        criado_por: null
+                    })
                     await supabase.from('lead_events').insert({
                         lead_id: lead.id,
                         organization_id: organizationId,
                         tipo: 'info_registrada',
-                        descricao: `IA registrou valor potencial: R$ ${numericValue.toLocaleString('pt-BR')}`,
-                        metadata: { campo: 'valor_venda', valor: numericValue, por: 'ia' }
+                        descricao: `IA registrou orçamento monetário: R$ ${numericValue.toLocaleString('pt-BR')}`,
+                        metadata: { campo: 'orcamento_monetario_reais', valor: numericValue, por: 'ia' }
                     })
 
-                    console.log(`[IA] Valor potencial R$${numericValue} registrado no lead ${lead.id}`)
+                    console.log(`[IA] Orçamento monetário R$${numericValue} registrado no lead ${lead.id}`)
                     break
                 }
 
@@ -338,7 +345,7 @@ export function buildSystemPromptWithToolInstructions(
   - Lead demonstra interesse concreto → mover para "Negociando"
   - Lead quer fechar negócio → mover para etapa de fechamento
   - Lead não tem interesse → mover para etapa de perda
-- Parâmetro: etapa_nome (o nome da etapa, ex: "Negociando", "Fechado/Ganho")`)
+- Parâmetros: etapa_nome (o nome da etapa, ex: "Negociando", "Fechado/Ganho"), resposta_para_cliente (a mensagem que você enviará ao cliente)`)
     }
 
     if (enabledTools.includes('qualificar_lead')) {
@@ -349,7 +356,7 @@ export function buildSystemPromptWithToolInstructions(
 - Sinais de qualificação: orçamento disponível, urgência, necessidade clara, cargo de decisor, interesse explícito no produto/serviço.
 - IMPORTANTE: Ao detectar QUALQUER dos sinais acima, chame esta tool imediatamente.
 - O lead será movido para a etapa "${qualifiedStageName}" e receberá a tag "Qualificado pela IA".
-- Parâmetros: motivo (por que qualificou), score (1-10)`)
+- Parâmetros: motivo (por que qualificou), score (1-10), resposta_para_cliente (a mensagem que você enviará ao cliente)`)
     }
 
     // The 'adicionar_tag' tool is explicitly disabled and should not be included in instructions.
@@ -371,13 +378,13 @@ export function buildSystemPromptWithToolInstructions(
 - Campos disponíveis:
   - "email" → quando o lead informar seu email
   - "observacoes" → objeções, preocupações, preferências, necessidades específicas, qualquer detalhe relevante da conversa
-  - "valor_potencial" → quando o lead mencionar orçamento, quanto quer gastar, ou valor do negócio
+  - "orcamento_monetario_reais" → quando o lead mencionar orçamento, quanto quer gastar, ou valor do negócio (APENAS VALOR MONETÁRIO, NUNCA TAMANHOS DE ROUPA/SAPATO)
   - "produto_interesse" → produto ou serviço específico que o lead demonstrou interesse
 - Exemplos:
-  - Lead diz "meu email é joao@email.com" → chamar registrar_info(campo: "email", valor: "joao@email.com")
-  - Lead diz "achei meio caro" → chamar registrar_info(campo: "observacoes", valor: "Objeção de preço: achou caro")
-  - Lead diz "quero gastar uns 500 reais" → chamar registrar_info(campo: "valor_potencial", valor: "500")
-  - Lead diz "to procurando calça skinny" → chamar registrar_info(campo: "produto_interesse", valor: "Calça Skinny")
+  - Lead diz "meu email é joao@email.com" → chamar registrar_info(campo: "email", valor: "joao@email.com", resposta_para_cliente: "Ok, email anotado!")
+  - Lead diz "achei meio caro" → chamar registrar_info(campo: "observacoes", valor: "Objeção de preço: achou caro", resposta_para_cliente: "Entendi sua preocupação com o preço. Posso te explicar melhor as opções?")
+  - Lead diz "quero gastar uns 500 reais" → chamar registrar_info(campo: "orcamento_monetario_reais", valor: "500", resposta_para_cliente: "Certo, R$500 anotado. Vamos encontrar algo que se encaixe!")
+  - Lead diz "to procurando calça skinny" → chamar registrar_info(campo: "produto_interesse", valor: "Calça Skinny", resposta_para_cliente: "Ótimo! Temos várias calças skinny. Qual tamanho você procura?")
 - Você pode chamar esta tool JUNTO com a resposta de texto, não precisa ser separado.`)
     }
 
@@ -386,14 +393,14 @@ export function buildSystemPromptWithToolInstructions(
 ### Tool: transferir_humano
 - Use quando o lead pedir explicitamente para falar com um humano/atendente.
 - Use também quando a conversa ficar travada e você não conseguir resolver.
-- Parâmetro: motivo (ex: "Cliente solicitou atendente humano")`)
+- Parâmetros: motivo (ex: "Cliente solicitou atendente humano"), resposta_para_cliente (a mensagem que você enviará ao cliente)`)
     }
 
     if (enabledTools.includes('encerrar_conversa')) {
         toolInstructions.push(`
 ### Tool: encerrar_conversa
 - Use quando o lead se despedir e a conversa estiver resolvida.
-- Parâmetro: motivo (ex: "Dúvida resolvida", "Cliente se despediu")`)
+- Parâmetros: motivo (ex: "Dúvida resolvida", "Cliente se despediu"), resposta_para_cliente (a mensagem que você enviará ao cliente)`)
     }
 
     toolInstructions.push(`
@@ -405,12 +412,12 @@ export function buildSystemPromptWithToolInstructions(
 5. Seja proativo: não espere o lead dar todas as informações — qualifique e categorize com o que já tem.`)
 
     prompt += "\n\n---\n" +
-        "⚠️ REGRAS CRÍTICAS DE EXECUÇÃO DE FERRAMENTAS (MUITO IMPORTANTE):\n" +
-        "1. Você atua como o VENDEDOR no WhatsApp. O cliente vai receber a sua resposta textual.\n" +
-        "2. Você DEVE SEMPRE gerar uma resposta em formato de texto NORMAL (para o cliente ler) NA MESMA MENSAGEM em que executa uma ferramenta.\n" +
-        "3. NUNCA chame uma ferramenta sem responder simultaneamente ao cliente! As ferramentas são utilitários invisíveis de backoffice. O cliente não pode ficar no vácuo.\n" +
-        "4. As chamadas de ferramentas rodam em background. Não diga ao cliente 'Vou registrar seu email' ou 'Estou te movendo de etapa'. Apenas faça e continue a conversa normalmente.\n" +
-        "5. NÃO crie tags sob nenhuma hipótese (foi desativado). Deixe a classificação humana.\n---\n"
+        "⚠️ REGRAS CRÍTICAS DE COMUNICAÇÃO (MUITO IMPORTANTE):\n" +
+        "1. VOCÊ É O VENDEDOR NO WHATSAPP.\n" +
+        "2. Se você decidir chamar uma ferramenta (ex: registrar_info, mover_lead_etapa), VOCÊ DEVE OBRIGATORIAMENTE preencher o campo 'resposta_para_cliente' dentro da chamada da ferramenta COM O TEXTO QUE O CLIENTE VAI LER.\n" +
+        "3. Nunca chame a ferramenta sem responder ao cliente! Se você salvar um dado, confirme de forma natural ou continue a conversa.\n" +
+        "4. NÃO USE a ferramenta de adicionar tag. APENAS registre interesses em notas.\n" +
+        "5. NÃO confunda TAMANHO de roupa ou sapato (38, 40, 42, P, M, G) com 'orcamento_monetario_reais'. Orçamento é apenas valor monetário (R$ 100, R$ 50).\n---\n"
 
     return prompt + toolInstructions.join('\n')
 }
@@ -423,14 +430,15 @@ export function buildToolDefinitions(enabledTools: string[]): Record<string, unk
             type: 'function',
             function: {
                 name: 'mover_lead_etapa',
-                description: 'Move o lead para uma etapa específica do pipeline de vendas. Use quando identificar mudança no estágio do funil.',
+                description: 'Move o lead no kanban de etapas. Use APENAS se houver avanço real na conversa.',
                 parameters: {
                     type: 'object',
                     properties: {
-                        etapa_nome: { type: 'string', description: 'Nome da etapa destino (ex: "Em contato", "Negociando", "Fechado/Ganho")' },
-                        motivo: { type: 'string', description: 'Motivo da movimentação' }
+                        etapa_nome: { type: 'string', description: 'Nome ou partes do nome da etapa alvo.' },
+                        motivo: { type: 'string', description: 'Motivo da movimentação' },
+                        resposta_para_cliente: { type: 'string', description: 'A resposta textual em linguagem natural que será enviada ao cliente no WhatsApp simultaneamente.' }
                     },
-                    required: ['etapa_nome']
+                    required: ['etapa_nome', 'resposta_para_cliente']
                 }
             }
         },
@@ -443,9 +451,10 @@ export function buildToolDefinitions(enabledTools: string[]): Record<string, unk
                     type: 'object',
                     properties: {
                         motivo: { type: 'string', description: 'Por que o lead foi qualificado' },
-                        score: { type: 'number', description: 'Score de 1 a 10' }
+                        score: { type: 'number', description: 'Score de 1 a 10' },
+                        resposta_para_cliente: { type: 'string', description: 'A resposta textual em linguagem natural que será enviada ao cliente no WhatsApp simultaneamente.' }
                     },
-                    required: ['motivo']
+                    required: ['motivo', 'resposta_para_cliente']
                 }
             }
         },
@@ -471,20 +480,27 @@ export function buildToolDefinitions(enabledTools: string[]): Record<string, unk
                 description: `📝 REGISTRO DE INFORMAÇÕES:
 Use a ferramenta "registrar_info" APENAS quando o cliente fornecer dados muito claros:
 - "email": Se enviar um formato válido de email.
-- "observacoes": Objeções, preocupações, preferências, necessidades específicas, qualquer detalhe relevante da conversa.
+- "observacoes": Objeções, preferências, qualquer detalhe relevante.
 - "produto_interesse": Se disser o que quer comprar (adicione como nota).
-- "valor_potencial": REGRA ESTRITA - SÓ USE se ele falar de dinheiro/orçamento (Ex: R$ 500,00, 20 mil). NUNCA registre tamanhos de roupa (ex: 42, P, M, 38), quantidades ou modelos como se fosse valor financeiro! Isso é dinheiro.`,
+- "orcamento_monetario_reais": SÓ USE se falar de dinheiro monetário (Ex: orçamento de 500 reais). NUNCA registre tamanhos (42, P, M).`,
                 parameters: {
                     type: 'object',
                     properties: {
                         campo: {
                             type: 'string',
-                            enum: ['email', 'observacoes', 'valor_potencial', 'produto_interesse'],
-                            description: 'Tipo de informação: email, observacoes (objeções/preferências), valor_potencial (orçamento/valor), produto_interesse'
+                            enum: ['nome', 'email', 'telefone', 'orcamento_monetario_reais', 'produto_interesse', 'objection', 'observacoes'],
+                            description: 'O campo a ser atualizado.'
                         },
-                        valor: { type: 'string', description: 'O valor a registrar' }
+                        valor: {
+                            type: 'string',
+                            description: 'O valor extraído. Se for orcamento, apenas números.'
+                        },
+                        resposta_para_cliente: {
+                            type: 'string',
+                            description: 'A resposta textual em linguagem natural que será enviada ao cliente no WhatsApp afirmando a conversa, enviada no exato momento do registro.'
+                        }
                     },
-                    required: ['campo', 'valor']
+                    required: ['campo', 'valor', 'resposta_para_cliente']
                 }
             }
         },

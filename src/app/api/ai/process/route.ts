@@ -339,10 +339,16 @@ export async function POST(request: Request) {
 
         const endTime = Date.now()
 
-        // 8. Execute Tool Calls
+        // 8. Execute Tool Calls and Extract Fallback Content
         if (toolCalls && toolCalls.length > 0) {
             for (const toolCall of toolCalls) {
                 console.log(`[IA] Executando tool: ${toolCall.name}`, JSON.stringify(toolCall.arguments))
+
+                // Fallback: If OpenAI returned empty content but filled the `resposta_para_cliente`
+                if (!responseText && toolCall.arguments?.resposta_para_cliente) {
+                    responseText = String(toolCall.arguments.resposta_para_cliente)
+                }
+
                 try {
                     await executeToolCall(supabase, toolCall, lead, organization_id, config)
                     console.log(`[IA] Tool ${toolCall.name} executada com sucesso`)
