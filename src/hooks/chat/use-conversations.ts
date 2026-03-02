@@ -50,32 +50,49 @@ export function useConversations() {
     useEffect(() => {
         if (!orgId) return
 
+        console.log('[Realtime] Assinando conversas para org:', orgId)
+
         const channel = supabase.channel(`chat-conversations-${orgId}`)
             .on(
                 'postgres_changes',
                 {
                     event: '*',
                     schema: 'public',
-                    table: 'leads',
-                    filter: `organization_id=eq.${orgId}`
+                    table: 'leads'
                 },
-                () => {
-                    queryClient.invalidateQueries({ queryKey })
+                (payload) => {
+                    const isForThisOrg = payload.new && 'organization_id' in payload.new
+                        ? payload.new.organization_id === orgId
+                        : true // If UPDATE without organization_id (Replica Identity Default), we invalidate anyway to be safe
+
+                    if (isForThisOrg) {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        console.log('[Realtime-Conversations] Lead event:', payload.eventType, (payload.new as any)?.id)
+                        queryClient.invalidateQueries({ queryKey: ['conversations', orgId] })
+                    }
                 }
             )
             .on(
                 'postgres_changes',
                 {
-                    event: 'INSERT',
+                    event: '*',
                     schema: 'public',
-                    table: 'mensagens',
-                    filter: `organization_id=eq.${orgId}`
+                    table: 'mensagens'
                 },
-                () => {
-                    queryClient.invalidateQueries({ queryKey })
+                (payload) => {
+                    const isForThisOrg = payload.new && 'organization_id' in payload.new
+                        ? payload.new.organization_id === orgId
+                        : true
+
+                    if (isForThisOrg) {
+                        console.log('[Realtime-Conversations] Mensagem event:', payload.eventType)
+                        queryClient.invalidateQueries({ queryKey: ['conversations', orgId] })
+                    }
                 }
             )
-            .subscribe()
+            .subscribe((status) => {
+                console.log(`[Realtime-Conversations] Status:`, status)
+            })
 
         return () => {
             supabase.removeChannel(channel)

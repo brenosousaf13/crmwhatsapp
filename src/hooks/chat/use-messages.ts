@@ -65,24 +65,34 @@ export function useMessages(leadId: string | null) {
                 {
                     event: '*',
                     schema: 'public',
-                    table: 'mensagens',
-                    filter: `lead_id=eq.${leadId}`
+                    table: 'mensagens'
                 },
                 (payload) => {
-                    console.log('[Realtime] Nova mensagem detectada:', payload.eventType)
-                    queryClient.invalidateQueries({ queryKey })
-                    // Também atualizar a lista de conversas (preview na sidebar)
-                    queryClient.invalidateQueries({ queryKey: ['conversations', orgId] })
+                    // Client-side filtering to avoid Replica default issues dropping un-updated columns
+                    // For UPDATEs that don't include lead_id, invalidate anyway (safer).
+                    const isForThisLead = payload.new && 'lead_id' in payload.new
+                        ? payload.new.lead_id === leadId
+                        : true
 
-                    // Se estivermos com o chat aberto, já marcar como lida e zerar o contador imediatamente 
-                    // para não ficar "piscando" a bolinha quando recebemos mensagem na conversa aberta
-                    if (payload.eventType === 'INSERT' && payload.new.direcao === 'entrada') {
-                        markAsRead()
+                    if (isForThisLead) {
+                        console.log('[Realtime-Messages] Nova mensagem/update detectado:', payload.eventType)
+                        queryClient.invalidateQueries({ queryKey })
+                        // Também atualizar a lista de conversas (preview na sidebar)
+                        queryClient.invalidateQueries({ queryKey: ['conversations', orgId] })
+
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const newData = payload.new as any
+
+                        // Se estivermos com o chat aberto, já marcar como lida e zerar o contador imediatamente 
+                        // para não ficar "piscando" a bolinha quando recebemos mensagem na conversa aberta
+                        if (payload.eventType === 'INSERT' && newData?.direcao === 'entrada') {
+                            markAsRead()
+                        }
                     }
                 }
             )
             .subscribe((status) => {
-                console.log(`[Realtime] Channel chat-messages-${leadId}: ${status}`)
+                console.log(`[Realtime-Messages] Channel status: ${status}`)
             })
 
         return () => {
