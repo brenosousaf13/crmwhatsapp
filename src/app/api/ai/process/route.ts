@@ -359,21 +359,7 @@ export async function POST(request: Request) {
             for (let i = 0; i < parts.length; i++) {
                 const part = parts[i]
 
-                // Calcular delay proporcional ao tamanho (simula digitação)
-                // ~50ms por caractere = uma pessoa digitando
-                const typingDelay = Math.min(
-                    Math.max(part.length * 50, 800),       // mínimo 800ms
-                    config.response_delay_ms || 3000       // máximo configurado
-                )
-
-                // Aguardar antes de enviar (exceto a primeira que usa o delay inicial)
-                if (i > 0) {
-                    await new Promise(resolve => setTimeout(resolve, typingDelay))
-                } else {
-                    await new Promise(resolve => setTimeout(resolve, config.response_delay_ms || 1000))
-                }
-
-                // Send via Native WhatsApp Route we built earlier
+                // Send via Native WhatsApp Route we built earlier (Instantly without simulated delays)
                 await sendNativeMessage(supabase, organization_id, lead.telefone, part)
 
                 // Save to DB

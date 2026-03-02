@@ -164,11 +164,10 @@ export async function executeToolCall(
         }
 
         // ─────────────────────────────────────────────────────
-        // ADICIONAR TAG
+        // ADICIONAR TAG (REMOVIDO A PEDIDO DO USUÁRIO)
         // ─────────────────────────────────────────────────────
         case 'adicionar_tag': {
-            await addTagToLead(supabase, lead.id as string, organizationId, args.tag_nome as string)
-            console.log(`[IA] Tag "${args.tag_nome}" adicionada ao lead ${lead.id}`)
+            console.log(`[IA] Tool adicionar_tag chamada, mas ignorada (desativada)`)
             break
         }
 
@@ -240,13 +239,11 @@ export async function executeToolCall(
                 }
 
                 case 'produto_interesse': {
-                    // Adicionar como tag + nota
-                    await addTagToLead(supabase, lead.id as string, organizationId, `Interesse: ${valor}`)
-
+                    // Adicionar na aba de Notas apenas
                     await supabase.from('lead_notas').insert({
                         lead_id: lead.id,
                         organization_id: organizationId,
-                        conteudo: `🤖 Produto de interesse: ${valor}`,
+                        conteudo: `Interesse demonstrado: ${valor}`,
                         criado_por: null
                     })
 
@@ -323,7 +320,7 @@ export function buildSystemPromptWithToolInstructions(
     enabledTools: string[],
     aiConfig: Record<string, unknown>
 ): string {
-    const prompt = userPrompt
+    let prompt = userPrompt
 
     if (!enabledTools || enabledTools.length === 0) return prompt
 
@@ -355,14 +352,15 @@ export function buildSystemPromptWithToolInstructions(
 - Parâmetros: motivo (por que qualificou), score (1-10)`)
     }
 
-    if (enabledTools.includes('adicionar_tag')) {
-        toolInstructions.push(`
-### Tool: adicionar_tag
-- Use para categorizar o lead com etiquetas baseadas na conversa.
-- Exemplos: "Interesse em [produto]", "Atacado", "Varejo", "Urgente", "Reclamação", "Indicação"
-- Pode chamar múltiplas vezes para adicionar várias tags.
-- Parâmetro: tag_nome (nome da tag a criar/adicionar)`)
-    }
+    // The 'adicionar_tag' tool is explicitly disabled and should not be included in instructions.
+    // if (enabledTools.includes('adicionar_tag')) {
+    //     toolInstructions.push(`
+    // ### Tool: adicionar_tag
+    // - Use para categorizar o lead com etiquetas baseadas na conversa.
+    // - Exemplos: "Interesse em [produto]", "Atacado", "Varejo", "Urgente", "Reclamação", "Indicação"
+    // - Pode chamar múltiplas vezes para adicionar várias tags.
+    // - Parâmetro: tag_nome (nome da tag a criar/adicionar)`)
+    // }
 
     if (enabledTools.includes('registrar_info')) {
         // eslint-disable-next-line no-useless-escape
@@ -406,6 +404,14 @@ export function buildSystemPromptWithToolInstructions(
 4. Sempre que extrair uma informação, registre-a. É melhor registrar demais do que de menos.
 5. Seja proativo: não espere o lead dar todas as informações — qualifique e categorize com o que já tem.`)
 
+    prompt += "\n\n---\n" +
+        "⚠️ REGRAS CRÍTICAS DE EXECUÇÃO DE FERRAMENTAS (MUITO IMPORTANTE):\n" +
+        "1. Você atua como o VENDEDOR no WhatsApp. O cliente vai receber a sua resposta textual.\n" +
+        "2. Você DEVE SEMPRE gerar uma resposta em formato de texto NORMAL (para o cliente ler) NA MESMA MENSAGEM em que executa uma ferramenta.\n" +
+        "3. NUNCA chame uma ferramenta sem responder simultaneamente ao cliente! As ferramentas são utilitários invisíveis de backoffice. O cliente não pode ficar no vácuo.\n" +
+        "4. As chamadas de ferramentas rodam em background. Não diga ao cliente 'Vou registrar seu email' ou 'Estou te movendo de etapa'. Apenas faça e continue a conversa normalmente.\n" +
+        "5. NÃO crie tags sob nenhuma hipótese (foi desativado). Deixe a classificação humana.\n---\n"
+
     return prompt + toolInstructions.join('\n')
 }
 
@@ -443,25 +449,31 @@ export function buildToolDefinitions(enabledTools: string[]): Record<string, unk
                 }
             }
         },
-        adicionar_tag: {
-            type: 'function',
-            function: {
-                name: 'adicionar_tag',
-                description: 'Adiciona uma tag ao lead para categorização.',
-                parameters: {
-                    type: 'object',
-                    properties: {
-                        tag_nome: { type: 'string', description: 'Nome da tag (ex: "Urgente", "Atacado", "Interesse Premium")' }
-                    },
-                    required: ['tag_nome']
-                }
-            }
-        },
+        // 'adicionar_tag' tool is explicitly disabled and removed from definitions.
+        // adicionar_tag: {
+        //     type: 'function',
+        //     function: {
+        //         name: 'adicionar_tag',
+        //         description: 'Adiciona uma tag ao lead para categorização.',
+        //         parameters: {
+        //             type: 'object',
+        //             properties: {
+        //                 tag_nome: { type: 'string', description: 'Nome da tag (ex: "Urgente", "Atacado", "Interesse Premium")' }
+        //             },
+        //             required: ['tag_nome']
+        //         }
+        //     }
+        // },
         registrar_info: {
             type: 'function',
             function: {
                 name: 'registrar_info',
-                description: 'Registra informação extraída da conversa nos dados do lead. Use SEMPRE que o lead mencionar email, orçamento, objeções, preferências ou produto de interesse.',
+                description: `📝 REGISTRO DE INFORMAÇÕES:
+Use a ferramenta "registrar_info" APENAS quando o cliente fornecer dados muito claros:
+- "email": Se enviar um formato válido de email.
+- "observacoes": Objeções, preocupações, preferências, necessidades específicas, qualquer detalhe relevante da conversa.
+- "produto_interesse": Se disser o que quer comprar (adicione como nota).
+- "valor_potencial": REGRA ESTRITA - SÓ USE se ele falar de dinheiro/orçamento (Ex: R$ 500,00, 20 mil). NUNCA registre tamanhos de roupa (ex: 42, P, M, 38), quantidades ou modelos como se fosse valor financeiro! Isso é dinheiro.`,
                 parameters: {
                     type: 'object',
                     properties: {
