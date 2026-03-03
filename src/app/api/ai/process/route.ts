@@ -162,18 +162,31 @@ export async function POST(request: Request) {
                 kbDocs.map(d => d.content).join('\n---\n').substring(0, 15000) // cap length
         }
 
+        // Import the single media processing action
+        const { processSingleMediaMessage } = await import('@/lib/ai/process-media')
+
+        // Resolve all messages sequentially. Doing sequentially is safer for DB locks on identical rows updates and concurrent calls limitation.
+        const translatedMessages = []
+        for (const m of orderedMensagens) {
+            let contentText = m.conteudo || ''
+            if (m.tipo !== 'texto' && m.direcao === 'entrada') {
+                // Execute transcription/vision dynamically
+                contentText = await processSingleMediaMessage(m, organization_id, config)
+            } else if (m.tipo === 'audio') {
+                contentText = '[Áudio Enviado]'
+            } else if (m.tipo === 'imagem' || m.tipo === 'image') {
+                contentText = '[Imagem Enviada]'
+            }
+
+            translatedMessages.push({
+                role: m.direcao === 'saida' ? 'assistant' : 'user',
+                content: contentText
+            })
+        }
+
         const messagesForLlm = [
             { role: 'system', content: systemPrompt + ragContext },
-            ...orderedMensagens.map(m => {
-                let text = m.conteudo || ''
-                if (m.tipo === 'audio') text = '[Mensagem de Áudio Não Transcrita]'
-                else if (m.tipo === 'imagem') text = '[Mensagem de Imagem]'
-
-                return {
-                    role: m.direcao === 'saida' ? 'assistant' : 'user',
-                    content: text
-                }
-            })
+            ...translatedMessages
         ]
 
         // Prepare tools for LLM

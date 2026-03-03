@@ -6,6 +6,8 @@ import { ptBR } from 'date-fns/locale'
 import { useChat } from '../chat-context'
 import { useMessages } from '@/hooks/chat/use-messages'
 import { Check, CheckCheck, File, Image as ImageIcon, Mic, Video, Bot } from 'lucide-react'
+import { AudioPlayer } from '../AudioPlayer'
+import { ChatImage } from '../ChatImage'
 import { Loader2 } from 'lucide-react'
 
 function formatMessageTime(dateString: string) {
@@ -100,20 +102,46 @@ export function MessageList() {
                                         : 'bg-white rounded-tl-none'
                                     }
                                 `}>
-                                    {/* Media Rendering Placeholder */}
+                                    {/* Media Rendering */}
                                     {msg.tipo !== 'texto' && (
-                                        <div className="flex items-center gap-2 mb-1 text-gray-600 bg-black/5 p-2 rounded">
-                                            {msg.tipo === 'imagem' && <ImageIcon className="w-4 h-4" />}
-                                            {msg.tipo === 'audio' && <Mic className="w-4 h-4" />}
-                                            {msg.tipo === 'video' && <Video className="w-4 h-4" />}
-                                            {msg.tipo === 'documento' && <File className="w-4 h-4" />}
-                                            <span className="text-sm font-medium italic capitalize">{msg.tipo}</span>
+                                        <div className="flex flex-col gap-1 mb-1 bg-black/5 p-2 rounded relative">
+                                            <div className="flex z-10 items-center justify-between text-gray-600 gap-2">
+                                                <div className="flex items-center gap-1">
+                                                    {(msg.tipo === 'imagem' || msg.tipo === 'image') && <ImageIcon className="w-4 h-4" />}
+                                                    {msg.tipo === 'audio' && <Mic className="w-4 h-4" />}
+                                                    {msg.tipo === 'video' && <Video className="w-4 h-4" />}
+                                                    {(msg.tipo === 'documento' || msg.tipo === 'document') && <File className="w-4 h-4" />}
+                                                    <span className="text-sm font-medium italic capitalize">{msg.tipo}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Audio Rendering */}
+                                            {msg.tipo === 'audio' && msg.whatsapp_message_id && (
+                                                <div className="mt-1 z-20">
+                                                    <AudioPlayer messageId={msg.whatsapp_message_id} />
+                                                </div>
+                                            )}
+
+                                            {/* Image Rendering */}
+                                            {(msg.tipo === 'imagem' || msg.tipo === 'image') && msg.whatsapp_message_id && (
+                                                <div className="mt-1 z-20">
+                                                    <ChatImage messageId={msg.whatsapp_message_id} />
+                                                </div>
+                                            )}
+
+                                            {/* Transcription Info Details */}
+                                            {msg.media_transcription && (
+                                                <div className="mt-2 text-xs text-gray-700 bg-white/50 p-2 rounded border border-black/5">
+                                                    <div className="font-semibold mb-0.5 opacity-60">🧠 IA detectou:</div>
+                                                    <p className="italic leading-snug">{msg.media_transcription}</p>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
                                     {/* Text Content */}
                                     {msg.conteudo && (
-                                        <span className="text-sm text-gray-900 whitespace-pre-wrap break-words leading-snug pr-8">
+                                        <span className="text-sm text-gray-900 whitespace-pre-wrap break-words leading-snug pr-8 mt-1">
                                             {msg.conteudo}
                                         </span>
                                     )}

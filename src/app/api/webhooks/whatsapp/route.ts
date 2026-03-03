@@ -159,10 +159,11 @@ async function handleIncomingMessage(supabase: SupabaseClient, orgId: string, da
         organization_id: orgId,
         lead_id: leadId,
         direcao: 'entrada',
-        conteudo: data.text || '[Mídia]',
+        conteudo: data.text || data.caption || '[Mídia]',
         tipo: tipoMsg,
         media_url: data.fileURL,
         whatsapp_message_id: data.messageid,
+        media_mimetype: data?.message?.mimetype || data?.mimetype || null,
         lida: false,
         timestamp: new Date(data.messageTimestamp || Date.now()).toISOString()
     })

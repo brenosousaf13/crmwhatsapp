@@ -131,7 +131,7 @@ export function AiConfigTab() {
                     />
 
                     {formData.provider !== 'openai' && (
-                        <div className="space-y-3 pt-2">
+                        <div className="space-y-3 pt-2 p-4 border rounded-lg bg-gray-50 dark:bg-[#1B1F3B]/30">
                             <Label className="text-sm font-medium">OpenAI Key para Transcrição de Áudio (Opcional)</Label>
                             <p className="text-xs text-muted-foreground mb-1">
                                 Como você não está usando a OpenAI como provedor principal, precisará fornecer uma chave da OpenAI se desejar que este agente consiga &quot;escutar&quot; e transcrever áudios (usará Whisper).
@@ -144,6 +144,32 @@ export function AiConfigTab() {
                             />
                         </div>
                     )}
+
+                    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-black/5 transition-colors">
+                        <div className="mr-4">
+                            <Label className="text-base text-blue-700">Processar Áudios</Label>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                O agente ouvirá áudios e enviará o texto transcrito ao contexto da conversa antes de responder (Usará OpenAI Whisper).
+                            </p>
+                        </div>
+                        <Switch
+                            checked={formData.transcribe_audio || false}
+                            onCheckedChange={(val) => handleChange('transcribe_audio', val)}
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-black/5 transition-colors">
+                        <div className="mr-4">
+                            <Label className="text-base text-blue-700">Processar Imagens e Fotos</Label>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                O agente irá olhar todas as fotos anexadas pelo usuário e extrair os significados visuais para responder de acordo.
+                            </p>
+                        </div>
+                        <Switch
+                            checked={formData.analyze_images || false}
+                            onCheckedChange={(val) => handleChange('analyze_images', val)}
+                        />
+                    </div>
                 </CardContent>
             </Card>
 

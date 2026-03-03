@@ -37,6 +37,8 @@ export interface AiConfig {
     auto_resume_hours: number
     generate_insights: boolean
     qualified_stage_id?: string
+    transcribe_audio?: boolean
+    analyze_images?: boolean
     criado_em?: string
     atualizado_em?: string
 }
