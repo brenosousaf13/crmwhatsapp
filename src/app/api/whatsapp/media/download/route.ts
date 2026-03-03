@@ -18,7 +18,9 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Colaborador não encontrado' }, { status: 404 })
         }
 
-        const { message_id } = await req.json()
+        const payload = await req.json().catch(() => ({}))
+        const { message_id } = payload
+        console.log('[MediaAPI] Payload recebido:', payload)
         if (!message_id) {
             console.error('[DownloadMediaAPI] message_id is missing inside payload')
             return NextResponse.json({ error: 'message_id é obrigatório' }, { status: 400 })
@@ -31,7 +33,7 @@ export async function POST(req: Request) {
             .single()
 
         if (!whatsappConfig || !whatsappConfig.api_url || !whatsappConfig.api_token) {
-            console.error('[DownloadMediaAPI] WhatsApp config is missing for org:', member.organization_id)
+            console.error('[DownloadMediaAPI] WhatsApp config is missing for org:', member.organization_id, 'Config:', whatsappConfig)
             return NextResponse.json({ error: 'WhatsApp não configurado' }, { status: 400 })
         }
 

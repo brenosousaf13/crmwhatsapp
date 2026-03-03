@@ -29,9 +29,18 @@ export function MessageList() {
 
     // Auto-scroll to bottom on new messages
     useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+        const scrollToBottom = () => {
+            if (scrollRef.current) {
+                scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+            }
         }
+
+        // Scroll on new messages
+        scrollToBottom()
+
+        // Handle async media load layouts pushing the scroll
+        window.addEventListener('chat-scroll-to-bottom', scrollToBottom)
+        return () => window.removeEventListener('chat-scroll-to-bottom', scrollToBottom)
     }, [messages])
 
     if (isLoading) {
@@ -63,7 +72,7 @@ export function MessageList() {
     return (
         <div
             ref={scrollRef}
-            className="flex-1 overflow-y-auto p-4 flex flex-col gap-2 relative bg-[#E5DDD5]"
+            className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col gap-2 relative bg-[#E5DDD5]"
         >
             <div className="absolute inset-0 opacity-40 mix-blend-multiply pointer-events-none"
                 style={{
@@ -72,7 +81,8 @@ export function MessageList() {
                 }}
             />
 
-            <div className="flex flex-col gap-2 justify-end min-h-full">
+            <div className="flex-1" /> {/* Spacer empurra mensagens curtas pro fundo */}
+            <div className="flex flex-col gap-2 w-full">
                 {messages.map((msg) => {
                     const msgDateStr = new Date(msg.timestamp).toDateString()
                     const showDateSeparator = msgDateStr !== lastDateStr
@@ -140,7 +150,7 @@ export function MessageList() {
                                     )}
 
                                     {/* Text Content */}
-                                    {msg.conteudo && (
+                                    {msg.conteudo && msg.conteudo !== '[Mídia]' && (
                                         <span className="text-sm text-gray-900 whitespace-pre-wrap break-words leading-snug pr-8 mt-1">
                                             {msg.conteudo}
                                         </span>

@@ -22,7 +22,7 @@ export function ConversationView() {
     }
 
     return (
-        <div className="flex-1 flex flex-col h-full bg-[#E5DDD5]">
+        <div className="flex-1 flex flex-col min-h-0 bg-[#E5DDD5]">
             <ConversationHeader />
             <MessageList />
             <MessageInput />

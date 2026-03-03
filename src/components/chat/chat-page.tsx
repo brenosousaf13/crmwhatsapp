@@ -29,7 +29,7 @@ export function ChatPage() {
 
             {/* Column 2: Active Conversation */}
             <div className={`
-                flex-1 flex flex-col min-w-0 bg-slate-50 relative
+                flex-1 flex flex-col min-w-0 min-h-0 bg-slate-50 relative
                 ${mobileViewIndex !== 1 ? 'hidden sm:flex' : 'flex'}
             `}>
                 <ConversationView />

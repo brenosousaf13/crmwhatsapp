@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Loader2, X } from 'lucide-react'
 
 export function ChatImage({ messageId }: { messageId: string }) {
@@ -28,7 +29,10 @@ export function ChatImage({ messageId }: { messageId: string }) {
                 const { base64, mimetype } = await res.json()
                 const dataUrl = `data:${mimetype || 'image/jpeg'};base64,${base64}`
 
-                if (isMounted) setImageUrl(dataUrl)
+                if (isMounted) {
+                    setImageUrl(dataUrl)
+                    setTimeout(() => window.dispatchEvent(new Event('chat-scroll-to-bottom')), 100)
+                }
             } catch (err) {
                 console.error('Erro ao carregar imagem:', err)
                 if (isMounted) setError(true)
@@ -43,7 +47,7 @@ export function ChatImage({ messageId }: { messageId: string }) {
             isMounted = false
             // Object URL not needed for base64 image strings.
         }
-    }, [messageId, imageUrl, loading, error])
+    }, [messageId])
 
     if (error) return <span className="text-xs italic text-red-400">⚠️ Imagem indisponível ou expirada</span>
     if (loading) return (
@@ -63,7 +67,7 @@ export function ChatImage({ messageId }: { messageId: string }) {
             />
 
             {/* Modal Lightbox ao Clicar */}
-            {lightbox && (
+            {lightbox && typeof document !== 'undefined' && createPortal(
                 <div
                     className="fixed inset-0 z-[99999] bg-black/90 flex items-center justify-center p-4 transition-all"
                     onClick={() => setLightbox(false)}
@@ -72,7 +76,7 @@ export function ChatImage({ messageId }: { messageId: string }) {
                     <img
                         src={imageUrl}
                         alt="Imagem"
-                        className="max-w-full rounded-md max-h-[80vh] object-contain"
+                        className="max-w-full rounded-md max-h-[80vh] object-contain shadow-2xl"
                     />
                     <button
                         className="absolute top-6 right-6 text-white bg-black/50 hover:bg-black/80 p-2 rounded-full transition-colors"
@@ -83,7 +87,8 @@ export function ChatImage({ messageId }: { messageId: string }) {
                     >
                         <X size={24} />
                     </button>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     )
