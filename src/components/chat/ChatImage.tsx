@@ -68,10 +68,11 @@ export function ChatImage({ messageId }: { messageId: string }) {
                     className="fixed inset-0 z-[99999] bg-black/90 flex items-center justify-center p-4 transition-all"
                     onClick={() => setLightbox(false)}
                 >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                         src={imageUrl}
-                        alt="Imagem ampliada"
-                        className="max-w-[95vw] max-h-[90vh] object-contain rounded-md"
+                        alt="Imagem"
+                        className="max-w-full rounded-md max-h-[80vh] object-contain"
                     />
                     <button
                         className="absolute top-6 right-6 text-white bg-black/50 hover:bg-black/80 p-2 rounded-full transition-colors"

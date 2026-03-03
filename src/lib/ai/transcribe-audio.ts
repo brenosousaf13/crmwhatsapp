@@ -44,8 +44,8 @@ export async function transcribeAudioWhisper(
         const result = await response.json()
         return result.text || null
 
-    } catch (err: any) {
-        console.error('[Whisper AI] Erro fatal:', err.message)
+    } catch (err: unknown) {
+        console.error('[Whisper AI] Erro fatal:', err instanceof Error ? err.message : String(err))
         return null
     }
 }

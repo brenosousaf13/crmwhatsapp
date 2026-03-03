@@ -131,8 +131,8 @@ export async function analyzeImageVision(
                 return null
         }
 
-    } catch (err: any) {
-        console.error('[Vision API] Erro fatal:', err.message)
+    } catch (err: unknown) {
+        console.error('[Vision API] Erro fatal:', err instanceof Error ? err.message : String(err))
         return null
     }
 }

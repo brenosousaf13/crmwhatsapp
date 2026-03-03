@@ -64,8 +64,8 @@ export async function POST(req: Request) {
             mimetype: data.mimetype || data.mimeType || 'application/octet-stream'
         })
 
-    } catch (err: any) {
-        console.error('[DownloadMediaAPI] Erro interno:', err.message)
+    } catch (err: unknown) {
+        console.error('[DownloadMediaAPI] Erro interno:', err instanceof Error ? err.message : String(err))
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
     }
 }

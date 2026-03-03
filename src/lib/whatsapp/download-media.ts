@@ -53,8 +53,8 @@ export async function downloadMediaBase64(
             base64: data.base64Data || data.base64 || data.data || '',
             mimetype: data.mimetype || data.mimeType || ''
         }
-    } catch (e: any) {
-        console.error('[DownloadMedia] Fatal error:', e.message)
+    } catch (e: unknown) {
+        console.error('[DownloadMedia] Fatal error:', e instanceof Error ? e.message : String(e))
         return null
     }
 }
