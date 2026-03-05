@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { buildSystemPromptWithToolInstructions, buildToolDefinitions, executeToolCall } from '@/lib/ai/tools'
-
+import { adjustToBusinessHours } from '@/lib/ai/followup-scheduler'
 
 // Using service role key for backend AI processing without auth context
 function createAdminClient() {
@@ -411,6 +411,11 @@ export async function POST(request: Request) {
 
             // Auto-mover lead para Em Contato
             await autoMoveToEmContato(supabase, lead, organization_id)
+
+            // Auto-agendar Follow-up se configurado
+            if (config.followup_enabled && config.followup_max_attempts && config.followup_max_attempts > 0) {
+                await scheduleAiFollowup(supabase, lead, config, messagesForLlm)
+            }
         }
 
         // 10. Write Telemetry Log
@@ -651,4 +656,54 @@ async function autoMoveToEmContato(supabase: SupabaseClient, lead: Record<string
             por: 'ia_auto'
         }
     })
+}
+
+// ==========================================
+// SCHEDULING FOLLOW-UP LOGIC
+// ==========================================
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function scheduleAiFollowup(supabase: SupabaseClient, lead: any, config: any, messagesForLlm: any[]) {
+    // 1. Check Se lead não está em etapa final e se followup está ativo no pipeline
+    if (config.followup_active_stages && config.followup_active_stages.length > 0) {
+        if (!config.followup_active_stages.includes(lead.etapa_id)) return
+    } else {
+        const { data: stage } = await supabase.from('etapas_kanban').select('tipo').eq('id', lead.etapa_id).single()
+        if (stage?.tipo === 'ganho' || stage?.tipo === 'perdido') return
+    }
+
+    // 2. Check if there's already a pending follow-up and cancel it
+    await supabase.from('followups')
+        .update({ status: 'cancelado', notas: 'Substituído por novo fluxo' })
+        .eq('lead_id', lead.id)
+        .eq('status', 'pendente')
+
+    // 3. Fetch intervals (fallback to [4, 24, 72])
+    const intervalsStr = config.followup_intervals
+    const intervals = Array.isArray(intervalsStr) ? intervalsStr : [4, 24, 72]
+    const nextInterval = intervals[0] || 4
+
+    let nextDate = new Date()
+    nextDate.setHours(nextDate.getHours() + nextInterval)
+
+    if (config.followup_business_hours_only) {
+        nextDate = adjustToBusinessHours(nextDate, config.business_hours)
+    }
+
+    // 4. Mount context summary (last ~3 messages)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recentContext = messagesForLlm.slice(-3).map((m: any) => `${m.role}: ${m.content}`).join('\n')
+
+    await supabase.from('followups').insert({
+        organization_id: lead.organization_id,
+        lead_id: lead.id,
+        tipo: 'ia',
+        agendado_para: nextDate.toISOString(),
+        tentativa_numero: 1,
+        max_tentativas: config.followup_max_attempts,
+        contexto: recentContext,
+        motivo: `Follow-up automático (tentativa 1)`,
+        status: 'pendente'
+    })
+
+    await supabase.from('leads').update({ followup_ativo: true, followup_count: 0 }).eq('id', lead.id)
 }

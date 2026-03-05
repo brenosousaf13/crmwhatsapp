@@ -10,8 +10,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { KanbanCardData } from './kanban-card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Phone, Loader2, GitCommit, ListPlus } from 'lucide-react'
+import { Phone, Loader2, GitCommit, ListPlus, Clock } from 'lucide-react'
 import { useLeadNotes, useAddLeadNote, useLeadHistory, useUpdateLead } from '../_logic/use-kanban'
+import { useQuery } from '@tanstack/react-query'
 import { formatDistanceToNow, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
@@ -55,6 +56,9 @@ export function LeadDrawer({ lead, open, onOpenChange }: LeadDrawerProps) {
                             <TabsTrigger value="notes" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-green-600 rounded-none px-0 h-12">
                                 Notas
                             </TabsTrigger>
+                            <TabsTrigger value="followups" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-green-600 rounded-none px-0 h-12 flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5" /> Follow-ups
+                            </TabsTrigger>
                         </TabsList>
                     </div>
 
@@ -69,6 +73,10 @@ export function LeadDrawer({ lead, open, onOpenChange }: LeadDrawerProps) {
 
                         <TabsContent value="notes" className="mt-0 flex flex-col gap-6">
                             <LeadNotesTab leadId={lead.id} />
+                        </TabsContent>
+
+                        <TabsContent value="followups" className="mt-0 flex flex-col gap-6">
+                            <LeadFollowupsTab leadId={lead.id} />
                         </TabsContent>
                     </div>
                 </Tabs>
@@ -280,5 +288,52 @@ function LeadNotesTab({ leadId }: { leadId: string }) {
                 )}
             </div>
         </>
+    )
+}
+
+function LeadFollowupsTab({ leadId }: { leadId: string }) {
+    const { data: followups, isLoading } = useQuery({
+        queryKey: ['followups', 'lead', leadId],
+        queryFn: async () => {
+            const res = await fetch(`/api/followups?lead_id=${leadId}`)
+            if (!res.ok) throw new Error('Falha ao buscar')
+            return res.json()
+        }
+    })
+
+    if (isLoading) {
+        return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
+    }
+
+    if (!followups || followups.length === 0) {
+        return (
+            <div className="text-center text-sm text-gray-500 py-8">
+                Nenhum follow-up cadastrado para este lead.
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-4">
+            {followups.map((f: any) => (
+                <div key={f.id} className="bg-white border rounded-lg p-4 flex flex-col gap-2 shadow-sm">
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-gray-900 capitalize flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-blue-600" />
+                            {f.tipo === 'ia' ? 'Automação IA' : 'Ação Humana'}
+                        </span>
+                        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${f.status === 'pendente' ? 'bg-orange-100 text-orange-700' : f.status === 'executado' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                            {f.status}
+                        </span>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                        {f.status === 'pendente' ? 'Agendado para: ' : 'Executado em: '}
+                        {format(new Date(f.status === 'pendente' ? f.agendado_para : (f.executado_em || f.agendado_para)), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                    {f.motivo && <p className="text-sm text-gray-700 mt-1"><strong>Motivo:</strong> {f.motivo}</p>}
+                    {f.notas && <p className="text-sm text-gray-700 mt-1"><strong>Notas:</strong> {f.notas}</p>}
+                </div>
+            ))}
+        </div>
     )
 }

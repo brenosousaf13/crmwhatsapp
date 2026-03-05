@@ -16,6 +16,7 @@ import {
     Bot,
     UsersRound,
     Plug,
+    CalendarCheck,
 } from 'lucide-react'
 import { useOrganization } from '@/components/providers/organization-provider'
 import { createClient } from '@/lib/supabase/client'
@@ -137,6 +138,7 @@ export function Sidebar() {
         { name: 'Kanban', href: '/kanban', icon: CheckSquare },
         { name: 'Leads', href: '/leads', icon: Users },
         { name: 'Chat', href: '/chat', icon: MessageCircle },
+        { name: 'Follow-ups', href: '/followups', icon: CalendarCheck },
     ]
 
     type SettingsItem = {

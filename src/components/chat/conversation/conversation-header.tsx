@@ -3,6 +3,7 @@
 import { useChat } from '../chat-context'
 import { ArrowLeft, PanelRightClose, PanelRightOpen, MoreVertical, PlayCircle, PauseCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ScheduleFollowupDialog } from './schedule-followup-dialog'
 import { useConversations } from '@/hooks/chat/use-conversations'
 import { createClient } from '@/lib/supabase/client'
 import { useCallback } from 'react'
@@ -89,6 +90,9 @@ export function ConversationHeader() {
                         )}
                     </Button>
                 )}
+
+                <ScheduleFollowupDialog leadId={lead.id} leadName={lead.nome || lead.telefone} />
+
                 <Button
                     variant="ghost"
                     size="icon"

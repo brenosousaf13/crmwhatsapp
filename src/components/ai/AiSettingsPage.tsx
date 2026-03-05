@@ -5,6 +5,7 @@ import { AiConfigTab } from './tabs/AiConfigTab'
 import { AiPromptTab } from './tabs/AiPromptTab'
 import { AiKnowledgeTab } from './tabs/AiKnowledgeTab'
 import { AiLogsTab } from './tabs/AiLogsTab'
+import { AiFollowupsTab } from './tabs/AiFollowupsTab'
 import { AiStatusBanner } from './AiStatusBanner'
 
 export function AiSettingsPage() {
@@ -17,6 +18,7 @@ export function AiSettingsPage() {
                     <TabsTrigger value="config">Configuração</TabsTrigger>
                     <TabsTrigger value="prompt">Prompt do Agente</TabsTrigger>
                     <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
+                    <TabsTrigger value="followups">Follow-ups (IA)</TabsTrigger>
                     <TabsTrigger value="logs">Logs</TabsTrigger>
                 </TabsList>
                 <div className="mt-6 mb-12">
@@ -28,6 +30,9 @@ export function AiSettingsPage() {
                     </TabsContent>
                     <TabsContent value="knowledge">
                         <AiKnowledgeTab />
+                    </TabsContent>
+                    <TabsContent value="followups">
+                        <AiFollowupsTab />
                     </TabsContent>
                     <TabsContent value="logs">
                         <AiLogsTab />

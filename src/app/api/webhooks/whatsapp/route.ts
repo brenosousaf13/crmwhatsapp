@@ -177,6 +177,18 @@ async function handleIncomingMessage(supabase: SupabaseClient, orgId: string, da
             ultima_mensagem_at: now
         }).eq('id', leadId)
 
+        // Cancelar eventuais follow-ups programados para este lead
+        await supabase.from('followups').update({
+            status: 'cancelado',
+            notas: 'Lead respondeu antes da execução'
+        }).eq('lead_id', leadId).eq('status', 'pendente')
+
+        // Zera o contador de follow-up do lead para não bloquear futuras ações
+        await supabase.from('leads').update({
+            followup_ativo: false,
+            followup_count: 0
+        }).eq('id', leadId)
+
         // atomic increment using the new RPC function
         await supabase.rpc('increment_nao_lidas', { lead_row_id: leadId })
 

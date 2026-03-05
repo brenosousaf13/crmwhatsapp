@@ -1,7 +1,8 @@
 'use client'
 
-import { Bell, HelpCircle, Search } from 'lucide-react'
+import { HelpCircle, Search } from 'lucide-react'
 import { usePathname } from 'next/navigation'
+import { NotificationDropdown } from '@/components/notifications/NotificationDropdown'
 
 export function Header() {
     const pathname = usePathname()
@@ -30,9 +31,7 @@ export function Header() {
                     />
                 </div>
 
-                <button className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-gray-100 text-gray-500">
-                    <Bell className="h-5 w-5" />
-                </button>
+                <NotificationDropdown />
 
                 <button className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-gray-100 text-gray-500">
                     <HelpCircle className="h-5 w-5" />

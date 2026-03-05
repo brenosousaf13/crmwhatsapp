@@ -3,7 +3,7 @@
 import { format, isToday, isYesterday, isThisWeek } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useChat } from '../chat-context'
-import { Image as ImageIcon, Mic, Video, File, CheckCheck, Bot, User } from 'lucide-react'
+import { Image as ImageIcon, Mic, Video, File, CheckCheck, Bot, User, Clock } from 'lucide-react'
 
 // Types based on the supabase schema joined
 interface ConversationItemProps {
@@ -112,10 +112,17 @@ export function ConversationItem({ lead }: ConversationItemProps) {
 
             <div className="flex-1 min-w-0 flex flex-col justify-center">
                 <div className="flex items-center justify-between mb-0.5">
-                    <h4 className={`text-sm truncate pr-2 ${hasUnread ? 'font-bold text-gray-900' : 'font-semibold text-gray-700'}`}>
-                        {lead.nome || lead.telefone}
-                    </h4>
-                    <span className={`text-[11px] whitespace-nowrap ${hasUnread ? 'text-blue-500 font-medium' : 'text-gray-400'}`}>
+                    <div className="flex items-center gap-1.5 truncate">
+                        <h4 className={`text-sm truncate ${hasUnread ? 'font-bold text-gray-900' : 'font-semibold text-gray-700'}`}>
+                            {lead.nome || lead.telefone}
+                        </h4>
+                        {lead.followup_ativo && (
+                            <span title="Follow-up Ativo">
+                                <Clock className="w-3.5 h-3.5 text-orange-500 shrink-0" strokeWidth={2.5} />
+                            </span>
+                        )}
+                    </div>
+                    <span className={`text-[11px] whitespace-nowrap pl-2 ${hasUnread ? 'text-blue-500 font-medium' : 'text-gray-400'}`}>
                         {timeDisplay}
                     </span>
                 </div>

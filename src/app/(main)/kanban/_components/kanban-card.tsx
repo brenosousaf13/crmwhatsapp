@@ -18,6 +18,7 @@ export interface KanbanCardData {
     assignee?: string
     unreadCount: number
     waitTime?: string | null
+    followupAtivo?: boolean
 }
 
 interface KanbanCardProps {
@@ -80,7 +81,14 @@ export function KanbanCard({ data, onClick }: KanbanCardProps) {
                     <AvatarFallback>{data.name.substring(0, 2)}</AvatarFallback>
                 </Avatar>
                 <div>
-                    <h4 className="font-semibold text-gray-900 text-[14px] leading-none mb-1 line-clamp-1">{data.name}</h4>
+                    <div className="flex items-center gap-1.5 mb-1">
+                        <h4 className="font-semibold text-gray-900 text-[14px] leading-none line-clamp-1">{data.name}</h4>
+                        {data.followupAtivo && (
+                            <div className="bg-orange-100 text-orange-700 p-0.5 rounded-md" title="Follow-up agendado e ativo">
+                                <Clock className="w-3 h-3" strokeWidth={2.5} />
+                            </div>
+                        )}
+                    </div>
                     <p className="text-[13px] text-gray-500">{data.phone}</p>
                 </div>
             </div>

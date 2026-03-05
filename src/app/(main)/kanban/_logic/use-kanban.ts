@@ -75,6 +75,7 @@ export function useKanbanBoard() {
                     valor_venda,
                     etapa_id,
                     atualizado_em,
+                    followup_ativo,
                     atendimentos ( user_profiles ( nome ) ),
                     lead_tags ( tags ( id, nome, cor ) ),
                     mensagens ( conteudo, timestamp, lida, direcao )
@@ -121,7 +122,8 @@ export function useKanbanBoard() {
                         tags: tags,
                         assignee: assignee,
                         unreadCount: unreadCount,
-                        waitTime: formatDistanceToNow(new Date(lead.atualizado_em), { locale: ptBR })
+                        waitTime: formatDistanceToNow(new Date(lead.atualizado_em), { locale: ptBR }),
+                        followupAtivo: lead.followup_ativo
                     }
                 })
 
