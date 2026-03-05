@@ -315,6 +315,7 @@ function LeadFollowupsTab({ leadId }: { leadId: string }) {
 
     return (
         <div className="space-y-4">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {followups.map((f: any) => (
                 <div key={f.id} className="bg-white border rounded-lg p-4 flex flex-col gap-2 shadow-sm">
                     <div className="flex items-center justify-between">

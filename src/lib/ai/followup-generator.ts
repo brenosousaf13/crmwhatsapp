@@ -1,5 +1,4 @@
 import { AiConfig } from '@/types/ai'
-import { callLlm } from './tools'
 
 interface FollowupContext {
     tentativa_numero: number
@@ -45,14 +44,62 @@ REGRAS RÍGIDAS (SEJA IMPECÁVEL NISSO):
 Escreva APENAS O TEXTO da mensagem final agora.`
 
     try {
-        const response = await callLlm(aiConfig, {
-            systemPrompt: prompt,
-            messages: [{ role: 'user', content: 'Crie e me entregue a mensagem seguindo estritamente as regras acima.' }],
-            tools: [],
-            temperature: 0.8
-        })
+        let responseText = ''
 
-        return response.text || 'Oi! Conseguiu verificar nossas últimas informações? Estou à disposição se tiver qualquer dúvida 😊'
+        if (aiConfig.provider === 'openai') {
+            const res = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${aiConfig.api_key}`
+                },
+                body: JSON.stringify({
+                    model: aiConfig.model,
+                    temperature: 0.8,
+                    messages: [
+                        { role: 'system', content: prompt },
+                        { role: 'user', content: 'Crie e me entregue a mensagem seguindo estritamente as regras acima.' }
+                    ]
+                })
+            })
+            const data = await res.json()
+            if (data.error) throw new Error(data.error.message)
+            responseText = data.choices[0]?.message?.content || ''
+        } else if (aiConfig.provider === 'anthropic') {
+            const res = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': aiConfig.api_key,
+                    'anthropic-version': '2023-06-01'
+                },
+                body: JSON.stringify({
+                    model: aiConfig.model,
+                    max_tokens: 150,
+                    temperature: 0.8,
+                    system: prompt,
+                    messages: [{ role: 'user', content: 'Crie e me entregue a mensagem seguindo estritamente as regras acima.' }]
+                })
+            })
+            const data = await res.json()
+            if (data.error) throw new Error(data.error.message)
+            responseText = data.content?.[0]?.text || ''
+        } else if (aiConfig.provider === 'google') {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${aiConfig.model}:generateContent?key=${aiConfig.api_key}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    systemInstruction: { parts: [{ text: prompt }] },
+                    contents: [{ role: 'user', parts: [{ text: 'Crie e me entregue a mensagem seguindo estritamente as regras acima.' }] }],
+                    generationConfig: { temperature: 0.8 }
+                })
+            })
+            const data = await res.json()
+            if (data.error) throw new Error(data.error.message)
+            responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+        }
+
+        return responseText.trim() || 'Oi! Conseguiu verificar nossas últimas informações? Estou à disposição se tiver qualquer dúvida 😊'
     } catch (e: unknown) {
         console.error('Falha ao acionar LLM em generateFollowupMessage:', e)
         return 'Oi! Conseguiu verificar as informações que conversamos? Estou por aqui se tiver alguma dúvida 😊'

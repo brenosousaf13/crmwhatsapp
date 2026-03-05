@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { createClient } from '@supabase/supabase-js'
 import { adjustToBusinessHours, getNextBusinessHour, isWithinBusinessHours } from '@/lib/ai/followup-scheduler'
 import { generateFollowupMessage } from '@/lib/ai/followup-generator'
 import { sendWhatsAppMessage } from '@/lib/whatsapp/send-message'
 
-export async function POST(req: Request) {
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+export async function POST() {
     // Verificar cron secret (descomentar quando configurar VERCEL_CRON_SECRET real)
     // const authHeader = req.headers.get('authorization')
     // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {

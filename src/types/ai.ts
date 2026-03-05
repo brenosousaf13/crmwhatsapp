@@ -39,7 +39,6 @@ export interface AiConfig {
     qualified_stage_id?: string
     transcribe_audio?: boolean
     analyze_images?: boolean
-    analyze_images?: boolean
     followup_enabled?: boolean
     followup_max_attempts?: number
     followup_intervals?: number[]

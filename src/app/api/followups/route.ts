@@ -93,9 +93,10 @@ export async function POST(request: Request) {
 
         return NextResponse.json(data)
 
-    } catch (e: any) {
+    } catch (e: unknown) {
         console.error('Error creating followup:', e)
-        return NextResponse.json({ error: e.message || 'Erro ao criar followup' }, { status: 500 })
+        const errorMsg = e instanceof Error ? e.message : 'Erro ao criar followup'
+        return NextResponse.json({ error: errorMsg }, { status: 500 })
     }
 }
 
@@ -119,7 +120,7 @@ export async function PATCH(request: Request) {
 
         if (!id) return NextResponse.json({ error: 'ID do followup é obrigatório' }, { status: 400 })
 
-        const updateData: any = {}
+        const updateData: Record<string, string> = {}
         if (status) updateData.status = status
         if (agendado_para) updateData.agendado_para = agendado_para
         if (notas !== undefined) updateData.notas = notas
@@ -153,9 +154,10 @@ export async function PATCH(request: Request) {
 
         return NextResponse.json(data)
 
-    } catch (e: any) {
+    } catch (e: unknown) {
         console.error('Error updating followup:', e)
-        return NextResponse.json({ error: e.message || 'Erro ao atualizar followup' }, { status: 500 })
+        const errorMsg = e instanceof Error ? e.message : 'Erro ao atualizar followup'
+        return NextResponse.json({ error: errorMsg }, { status: 500 })
     }
 }
 
